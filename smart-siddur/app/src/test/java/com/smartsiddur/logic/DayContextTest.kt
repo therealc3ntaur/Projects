@@ -93,6 +93,13 @@ class DayContextTest {
     }
 
     @Test
+    fun hallelHighlightOnlyForShacharit() {
+        val rc = LocalDate.of(2026, 11, 11)
+        assertTrue("חצי הלל" in DayContext.of(rc, true, Service.SHACHARIT).highlights)
+        assertFalse("חצי הלל" in DayContext.of(rc, true, Service.MAARIV).highlights)
+    }
+
+    @Test
     fun omerCount() {
         val f = flags(2027, 5, 25) // Lag BaOmer
         assertTrue("omer" in f)

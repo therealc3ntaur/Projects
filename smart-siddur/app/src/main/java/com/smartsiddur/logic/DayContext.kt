@@ -18,6 +18,7 @@ class DayContext private constructor(
     val date: LocalDate,
     val calendar: JewishCalendar,
     val flags: Set<String>,
+    private val service: Service?,
 ) {
     /** E.g. "ט״ו תשרי תשפ״ז". */
     val hebrewDate: String get() = formatter.format(calendar)
@@ -26,14 +27,15 @@ class DayContext private constructor(
     val highlights: List<String>
         get() = buildList {
             HIGHLIGHTS.forEach { (flag, label) -> if (flag in flags) add(label) }
-            if ("hallel" in flags) add(if ("hallel_shalem" in flags) "הלל שלם" else "חצי הלל")
+            // Hallel is only part of Shacharit (and with no service, e.g. brachot, it isn't relevant)
+            if ("hallel" in flags && service == Service.SHACHARIT) add(if ("hallel_shalem" in flags) "הלל שלם" else "חצי הלל")
             if (calendar.dayOfOmer > 0) add("ספירת העומר: ${formatter.formatHebrewNumber(calendar.dayOfOmer)}")
         }
 
     companion object {
         fun of(date: LocalDate, inIsrael: Boolean, service: Service? = null): DayContext {
             val jc = jewishCalendar(date, inIsrael)
-            return DayContext(date, jc, computeFlags(jc, date, inIsrael, service))
+            return DayContext(date, jc, computeFlags(jc, date, inIsrael, service), service)
         }
 
         fun jewishCalendar(date: LocalDate, inIsrael: Boolean) = JewishCalendar(date).apply {

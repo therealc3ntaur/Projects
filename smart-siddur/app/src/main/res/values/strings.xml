@@ -4,11 +4,9 @@
     <string name="menu">תפריט</string>
     <string name="settings">הגדרות</string>
     <string name="jump_to_section">קפיצה לקטע</string>
-    <string name="loading">טוען…</string>
     <string name="load_error">לא ניתן לטעון את התפילה</string>
 
     <string name="evening_chip">אחרי השקיעה</string>
-    <string name="evening_chip_hint">הלוח מחושב ליום העברי הבא</string>
     <string name="showing_all">מציג את כל הנוסחים</string>
     <string name="today_inserts">תוספות היום: %1$s</string>
     <string name="font_size_indicator">גודל גופן: %1$d</string>

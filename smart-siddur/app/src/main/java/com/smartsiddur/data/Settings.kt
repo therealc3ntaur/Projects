@@ -33,7 +33,9 @@ class Settings(context: Context) {
 
         override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
             state = value
-            prefs.edit().write(key, value).apply()
+            val editor = prefs.edit()
+            editor.write(key, value)
+            editor.apply()
         }
     }
 

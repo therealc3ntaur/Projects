@@ -38,7 +38,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -71,8 +70,9 @@ import java.time.ZonedDateTime
 @Composable
 fun PrayerScreen(entry: MenuEntry, context: ScreenContext) {
     val settings = context.settings
-    val prayer by produceState<Result<Prayer>?>(null, entry.id, settings.nusach) {
-        value = withContext(Dispatchers.IO) {
+    var prayer by remember { mutableStateOf<Result<Prayer>?>(null) }
+    LaunchedEffect(entry.id, settings.nusach) {
+        prayer = withContext(Dispatchers.IO) {
             runCatching { context.repository.load(settings.nusach, entry.id) }
         }
     }
