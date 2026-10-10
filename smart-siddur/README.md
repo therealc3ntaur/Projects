@@ -19,7 +19,8 @@ a Hebrew calendar. The text is Nusach Ashkenaz, and the app is set up so more nu
 - **Hebrew calendar:** a Hebrew month grid with Yom Tov, fasts, Rosh Chodesh and minor holidays color-coded.
   Tapping a day shows its details: Gregorian date, holidays, parsha and omer. The month's events are listed below
   the grid.
-- **Settings:** nusach, Israel/diaspora (this affects holidays, tal umatar and some customs), smart mode,
+- **Dark / night mode:** follows the phone by default; choose light or dark in Settings, or tap the moon/sun icon in a prayer.
+- **Settings:** nusach, theme, Israel/diaspora (this affects holidays, tal umatar and some customs), smart mode,
   long halachic notes, and text size.
 - The screen stays on while a prayer is open.
 

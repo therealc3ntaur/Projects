@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartsiddur.R
 import com.smartsiddur.data.Settings
+import com.smartsiddur.data.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,6 +64,23 @@ fun SettingsScreen(context: ScreenContext) {
                         selected = settings.nusach == nusach.id,
                         role = Role.RadioButton,
                         onClick = { settings.nusach = nusach.id },
+                    ),
+                )
+            }
+
+            SettingsHeader(stringResource(R.string.settings_theme))
+            listOf(
+                ThemeMode.SYSTEM to R.string.theme_system,
+                ThemeMode.LIGHT to R.string.theme_light,
+                ThemeMode.DARK to R.string.theme_dark,
+            ).forEach { (mode, label) ->
+                ListItem(
+                    headlineContent = { Text(stringResource(label)) },
+                    leadingContent = { RadioButton(selected = settings.themeMode == mode, onClick = null) },
+                    modifier = Modifier.selectable(
+                        selected = settings.themeMode == mode,
+                        role = Role.RadioButton,
+                        onClick = { settings.themeMode = mode },
                     ),
                 )
             }

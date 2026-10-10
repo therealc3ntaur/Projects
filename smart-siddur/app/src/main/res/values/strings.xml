@@ -28,6 +28,12 @@
     <string name="settings_font_size">גודל טקסט</string>
     <string name="settings_font_size_desc">אפשר גם לצבוט בשתי אצבעות בתוך התפילה</string>
     <string name="settings_nusach">נוסח</string>
+    <string name="settings_theme">ערכת נושא</string>
+    <string name="theme_system">לפי הגדרות המכשיר</string>
+    <string name="theme_light">בהיר</string>
+    <string name="theme_dark">כהה (מצב לילה)</string>
+    <string name="theme_to_dark">מעבר למצב לילה</string>
+    <string name="theme_to_light">מעבר למצב בהיר</string>
     <string name="settings_about">אודות</string>
     <string name="settings_about_text">נוסח התפילות: סידור אשכנז מתוך ספריית ספריא (Sefaria), על בסיס תורת אמת. חישובי הלוח העברי: ספריית KosherJava.</string>
 </resources>

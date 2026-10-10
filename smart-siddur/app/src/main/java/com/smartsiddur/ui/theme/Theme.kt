@@ -62,9 +62,9 @@ private val Dark = darkColorScheme(
 )
 
 @Composable
-fun SiddurTheme(content: @Composable () -> Unit) {
+fun SiddurTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = if (isSystemInDarkTheme()) Dark else Light,
+        colorScheme = if (darkTheme) Dark else Light,
         content = content,
     )
 }

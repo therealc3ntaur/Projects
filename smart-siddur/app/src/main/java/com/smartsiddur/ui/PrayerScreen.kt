@@ -57,6 +57,9 @@ import com.smartsiddur.data.MenuEntry
 import com.smartsiddur.data.Prayer
 import com.smartsiddur.data.Rollover
 import com.smartsiddur.data.Settings
+import com.smartsiddur.data.ThemeMode
+import com.smartsiddur.ui.theme.SiddurIcons
+import androidx.compose.foundation.isSystemInDarkTheme
 import com.smartsiddur.logic.DayContext
 import com.smartsiddur.logic.PrayerRow
 import com.smartsiddur.logic.PrayerTime
@@ -114,6 +117,7 @@ fun PrayerScreen(entry: MenuEntry, context: ScreenContext) {
                     }
                 },
                 actions = {
+                    ThemeToggle(settings)
                     SectionJumpMenu(rows) { index -> scope.launch { listState.scrollToItem(index) } }
                 },
             )
@@ -165,6 +169,17 @@ fun PrayerScreen(entry: MenuEntry, context: ScreenContext) {
                 ZoomIndicator(zooming, fontSize, Modifier.align(Alignment.TopCenter).padding(top = 12.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun ThemeToggle(settings: Settings) {
+    val dark = settings.isDark(isSystemInDarkTheme())
+    IconButton(onClick = { settings.themeMode = if (dark) ThemeMode.LIGHT else ThemeMode.DARK }) {
+        Icon(
+            if (dark) SiddurIcons.Sun else SiddurIcons.Moon,
+            contentDescription = stringResource(if (dark) R.string.theme_to_light else R.string.theme_to_dark),
+        )
     }
 }
 

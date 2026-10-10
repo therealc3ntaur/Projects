@@ -9,6 +9,8 @@ import java.util.TimeZone
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
 /** User preferences, observable from Compose and persisted in SharedPreferences. */
 class Settings(context: Context) {
 
@@ -20,6 +22,19 @@ class Settings(context: Context) {
     var inIsrael by Pref(KEY_IN_ISRAEL, TimeZone.getDefault().id in ISRAEL_TIME_ZONES, SharedPreferences::getBoolean, SharedPreferences.Editor::putBoolean)
     var smartMode by Pref(KEY_SMART, true, SharedPreferences::getBoolean, SharedPreferences.Editor::putBoolean)
     var showNotes by Pref(KEY_NOTES, false, SharedPreferences::getBoolean, SharedPreferences.Editor::putBoolean)
+    var themeMode by Pref(
+        KEY_THEME,
+        ThemeMode.SYSTEM,
+        { k, d -> runCatching { ThemeMode.valueOf(getString(k, d.name)!!) }.getOrDefault(d) },
+        { k, v -> putString(k, v.name) },
+    )
+
+    /** Whether the dark color scheme should be used, given whether the system is in dark mode. */
+    fun isDark(systemDark: Boolean) = when (themeMode) {
+        ThemeMode.SYSTEM -> systemDark
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
 
     private inner class Pref<T>(
         private val key: String,
@@ -49,6 +64,7 @@ class Settings(context: Context) {
         private const val KEY_IN_ISRAEL = "in_israel"
         private const val KEY_SMART = "smart_mode"
         private const val KEY_NOTES = "show_notes"
+        private const val KEY_THEME = "theme_mode"
 
         private val ISRAEL_TIME_ZONES = setOf("Asia/Jerusalem", "Asia/Tel_Aviv", "Israel")
     }
