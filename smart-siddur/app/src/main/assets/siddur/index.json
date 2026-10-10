@@ -1,0 +1,29 @@
+{
+  "defaultNusach": "ashkenaz",
+  "nuschaot": [
+    { "id": "ashkenaz", "title": "אשכנז" }
+  ],
+  "menu": [
+    {
+      "title": "תפילות",
+      "entries": [
+        { "type": "prayer", "id": "shacharit", "title": "שחרית" },
+        { "type": "prayer", "id": "mincha", "title": "מנחה" },
+        { "type": "prayer", "id": "maariv", "title": "ערבית" }
+      ]
+    },
+    {
+      "title": "ברכות",
+      "entries": [
+        { "type": "prayer", "id": "birkat_hamazon", "title": "ברכת המזון" },
+        { "type": "prayer", "id": "mein_shalosh", "title": "ברכה מעין שלוש" }
+      ]
+    },
+    {
+      "title": "לוח",
+      "entries": [
+        { "type": "calendar", "id": "calendar", "title": "לוח שנה עברי" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">סידור חכם</string>
+    <string name="menu">תפריט</string>
+    <string name="settings">הגדרות</string>
+    <string name="jump_to_section">קפיצה לקטע</string>
+    <string name="loading">טוען…</string>
+    <string name="load_error">לא ניתן לטעון את התפילה</string>
+
+    <string name="evening_chip">אחרי השקיעה</string>
+    <string name="evening_chip_hint">הלוח מחושב ליום העברי הבא</string>
+    <string name="showing_all">מציג את כל הנוסחים</string>
+    <string name="today_inserts">תוספות היום: %1$s</string>
+    <string name="font_size_indicator">גודל גופן: %1$d</string>
+
+    <string name="calendar_today">היום</string>
+    <string name="calendar_prev">החודש הקודם</string>
+    <string name="calendar_next">החודש הבא</string>
+    <string name="calendar_month_events">מועדי החודש</string>
+    <string name="calendar_no_events">אין מועדים מיוחדים</string>
+
+    <string name="settings_location">מיקום</string>
+    <string name="settings_in_israel">אני בארץ ישראל</string>
+    <string name="settings_in_israel_desc">משפיע על החגים בלוח, על שאלת טל ומטר ועל מנהגים שונים</string>
+    <string name="settings_display">תצוגה</string>
+    <string name="settings_smart">סידור חכם</string>
+    <string name="settings_smart_desc">הצג רק את מה שאומרים היום (יעלה ויבוא, על הניסים, תחנון וכו׳)</string>
+    <string name="settings_notes">הלכות והערות ארוכות</string>
+    <string name="settings_notes_desc">הצג את ההערות ההלכתיות שבין קטעי התפילה</string>
+    <string name="settings_font_size">גודל טקסט</string>
+    <string name="settings_font_size_desc">אפשר גם לצבוט בשתי אצבעות בתוך התפילה</string>
+    <string name="settings_nusach">נוסח</string>
+    <string name="settings_about">אודות</string>
+    <string name="settings_about_text">נוסח התפילות: סידור אשכנז מתוך ספריית ספריא (Sefaria), על בסיס תורת אמת. חישובי הלוח העברי: ספריית KosherJava.</string>
+</resources>
