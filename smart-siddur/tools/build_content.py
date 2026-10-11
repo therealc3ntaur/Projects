@@ -188,6 +188,19 @@ class Source:
 
 
 
+# Remarks that read as rubrics (end in ':') but are halachic notes or no longer needed
+DROP_INSTRUCTIONS = (
+    'בחזרת הש"ץ אומרים כאן קדושה',   # Kedusha is its own collapsible section
+    "בחול אומר החזן קדיש שלם",
+    "שלושה שאכלו כאחד חייבין בזימון",
+)
+# Long rubrics shortened to what the reader needs
+SHORTEN_INSTRUCTIONS = {
+    "מי שהגיע בנו לבן י\"ג שנה": "אבי בר המצווה אומר:",
+    "בשני ובחמישי ושאר ימים שמוציאין ספר תורה אומרים יהללו": "ואומר החזן:",
+}
+
+
 def is_halachic_note(item):
     """Notes and halachic remarks are dropped; short rubrics ("שליח ציבור:") and labels stay."""
     if item["type"] == "note":
@@ -195,7 +208,7 @@ def is_halachic_note(item):
     if item["type"] != "instruction":
         return False
     p = plain(item["text"])
-    if p.startswith(("אם ", "יש ")):
+    if p.startswith(("אם ", "יש ")) or p.startswith(DROP_INSTRUCTIONS):
         return True
     if p.endswith(":") or p.startswith("("):
         return False
@@ -248,6 +261,10 @@ def make_items(raw, overrides=None):
         if inherited and "when" not in ov:
             parts = inherited + ([when] if when else [])
             when = " & ".join(f"({p})" if "|" in p else p for p in dict.fromkeys(parts))
+        if itype == "instruction":
+            for prefix, short in SHORTEN_INSTRUCTIONS.items():
+                if plain(text).startswith(prefix):
+                    text = f"<small>{short}</small>"
         item = {"type": itype, "text": inline_conditions(text)}
         if when:
             item["when"] = when
@@ -405,9 +422,23 @@ def build_shacharit(src):
     S = W + ("Shacharit",)
 
     b.part("ברכות השחר וקרבנות")
+    label = lambda t: {"type": "instruction", "text": f"<small>{t}</small>"}
     b.tree(S + ("Preparatory Prayers",), exclude=(
         "Akedah", "Kiyor", "Terumat HaDeshen", "Ketoret", "Order of the Temple Service", "Laws of Sacrifices",
-    ))
+    ), overrides={
+        # Tallit: just the bracha
+        "Tallit": {0: {"skip": True}, 1: {"skip": True}, 2: {"skip": True}, 4: {"skip": True}},
+        # Tefillin: the brachot and וארשתיך, with short labels
+        "Tefillin": {
+            0: {"skip": True},
+            1: label("על תפילין של יד:"),
+            3: label("על תפילין של ראש:"),
+            5: label("ואומר:"),
+            7: {"skip": True},
+            8: label("כשכורך את הרצועה על האצבע:"),
+            10: {"skip": True}, 11: {"skip": True}, 12: {"skip": True},
+        },
+    })
 
     b.part("פסוקי דזמרה")
     b.tree(S + ("Pesukei Dezimra",),
@@ -449,6 +480,9 @@ def build_shacharit(src):
     F = R + ("Reading from Sefer",)
     b.leaf(F + ("Birkat HaTorah",), when="torah_reading")
     b.custom("ברכת הגומל", small(make_items(src.node(*F, "Birkat Hagomel"))), when="torah_reading")
+    # Filled in by the app with the coming Shabbat's parsha (weekday aliyot)
+    b.custom("קריאה בפרשת השבוע", [], when="weekday_torah")
+    b.doc["sections"][-1]["source"] = "weekday_torah"
     b.leaf(F + ("Half Kaddish",), when="torah_reading")
     b.leaf(F + ("Raising the Torah",), when="torah_reading", overrides={
         3: {"when": "tachanun & (day_2 | day_5)", "span": 5},
@@ -601,7 +635,7 @@ def build_mein_shalosh(src):
     tail = body[10]
 
     items = [{"type": "instruction",
-              "text": "אחרי אכילת מזונות (חמשת מיני דגן), שתיית יין, או פירות משבעת המינים. "
+              "text": "על מזונות, יין, או פירות משבעת המינים:"
                       "מי שאכל כמה מינים כולל אותם בברכה אחת (מחיה, גפן, עץ)."}]
     items += make_items(raw[0:4])
     items += make_items([head])

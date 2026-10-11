@@ -36,10 +36,6 @@
    "items": [
     {
      "type": "instruction",
-     "text": "<small>שלושה שאכלו כאחד חייבין בזימון, וכך מזמנין:</small>"
-    },
-    {
-     "type": "instruction",
      "text": "<small>המזמן אומר:</small>"
     },
     {

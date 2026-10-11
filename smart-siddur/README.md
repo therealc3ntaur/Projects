@@ -18,6 +18,8 @@ a Hebrew calendar. The text is Nusach Ashkenaz, and the app is set up so more nu
 - **Zmanim:** סוף זמן ק״ש under the Kri'at Shema heading, and נץ החמה with סוף זמן תפילה under Shemoneh
   Esrei (MGA and GRA, calculated with KosherJava). These use the phone's approximate location: the app asks once,
   and you can refresh it in Settings. Without location, the times are estimated and labeled as approximate.
+- **Weekly Torah reading** on Mondays and Thursdays (the weekday aliyot of the coming Shabbat's parsha),
+  after Birkat Hagomel. Days with their own reading (Rosh Chodesh, Chanukah, fasts...) don't show it yet.
 - **Kedusha** (said only in the repetition) is a collapsed section right before אתה קדוש; tap to open it.
 - **Section jump:** tap the prayer name in the top bar to jump to any section.
 - **Hebrew calendar:** a Hebrew month grid with Yom Tov, fasts, Rosh Chodesh and minor holidays color-coded.
@@ -133,6 +135,10 @@ The Ashkenaz text comes from Sefaria's *Siddur Ashkenaz* export (the "merged" He
 ```sh
 python3 tools/build_content.py            # downloads the export, or pass a local merged.json path
 ```
+
+The weekday Torah readings come from Sefaria's "Tanach with Nikkud", divided into aliyot according to
+[Hebcal's leyning data](https://github.com/hebcal/hebcal-leyning) (BSD-2-Clause). To regenerate:
+`python3 tools/build_torah.py`.
 
 Sefaria's merged version pulls from several source editions with different licenses. Check those licenses before
 publishing the app.

@@ -67,6 +67,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import com.smartsiddur.logic.Condition
 import com.smartsiddur.logic.DayContext
 import com.smartsiddur.logic.Place
+import com.smartsiddur.logic.TorahReading
 import com.smartsiddur.logic.Zmanim
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -88,7 +89,10 @@ fun PrayerScreen(entry: MenuEntry, context: ScreenContext) {
     var prayer by remember { mutableStateOf<Result<Prayer>?>(null) }
     LaunchedEffect(entry.id, settings.nusach) {
         prayer = withContext(Dispatchers.IO) {
-            runCatching { context.repository.load(settings.nusach, entry.id) }
+            runCatching {
+                context.repository.weekdayTorah // parse the reading data off the main thread too
+                context.repository.load(settings.nusach, entry.id)
+            }
         }
     }
     val listState = rememberLazyListState()
@@ -112,7 +116,10 @@ fun PrayerScreen(entry: MenuEntry, context: ScreenContext) {
     // Collapsible sections (Kedusha) the user has opened
     var expanded by remember(entry.id) { mutableStateOf(emptySet<Int>()) }
     val rows = remember(loaded, day, settings.smartMode, expanded) {
-        loaded?.let { buildRows(it, day.flags, settings.smartMode, expanded) }.orEmpty()
+        loaded?.let {
+            val resolved = TorahReading.resolve(it, day, context.repository.weekdayTorah)
+            buildRows(resolved, day.flags, settings.smartMode, expanded)
+        }.orEmpty()
     }
     val zmanim = remember(day.date, place) { PrayerTime.zmanim(day.date, ZoneId.systemDefault(), place) }
 

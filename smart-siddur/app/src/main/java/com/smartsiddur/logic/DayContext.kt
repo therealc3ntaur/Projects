@@ -58,7 +58,7 @@ class DayContext private constructor(
             "yaaleh_veyavo", "al_hanisim", "hallel", "hallel_shalem",
             "tachanun", "tachanun_day", "avinu_malkenu", "mizmor_letoda", "lamenatzeach",
             "torah_reading", "ledavid", "omer",
-            "motzaei_shabbat", "motzaei_yom_tov", "vihi_noam",
+            "motzaei_shabbat", "motzaei_yom_tov", "vihi_noam", "weekday_torah",
         )
 
         private val DYNAMIC_FLAG = Regex("""(day_[1-7]|omer_([1-9]|[1-4]\d))""")
@@ -162,6 +162,13 @@ class DayContext private constructor(
                 "ledavid",
                 month == JewishDate.ELUL || (month == JewishDate.AV && day == 30) ||
                     (month == JewishDate.TISHREI && day <= 22),
+            )
+
+            // Monday/Thursday reading from the coming Shabbat's parsha, unless the day has its own
+            flag(
+                "weekday_torah",
+                (dayOfWeek == 2 || dayOfWeek == 5) && !jc.isRoshChodesh && !jc.isChanukah && !jc.isPurim &&
+                    !shushanPurim && !jc.isTaanis && !jc.isCholHamoed && !jc.isYomTovAssurBemelacha,
             )
 
             val omer = jc.dayOfOmer
