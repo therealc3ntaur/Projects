@@ -1,28 +1,70 @@
 {
   "defaultNusach": "ashkenaz",
   "nuschaot": [
-    { "id": "ashkenaz", "title": "אשכנז" }
+    {
+      "id": "ashkenaz",
+      "title": "אשכנז"
+    }
   ],
   "menu": [
     {
       "title": "תפילות",
       "entries": [
-        { "type": "prayer", "id": "shacharit", "title": "שחרית" },
-        { "type": "prayer", "id": "mincha", "title": "מנחה" },
-        { "type": "prayer", "id": "maariv", "title": "ערבית" }
+        {
+          "type": "prayer",
+          "id": "shacharit",
+          "title": "שחרית"
+        },
+        {
+          "type": "prayer",
+          "id": "mincha",
+          "title": "מנחה"
+        },
+        {
+          "type": "prayer",
+          "id": "maariv",
+          "title": "ערבית"
+        }
       ]
     },
     {
       "title": "ברכות",
       "entries": [
-        { "type": "prayer", "id": "birkat_hamazon", "title": "ברכת המזון" },
-        { "type": "prayer", "id": "mein_shalosh", "title": "ברכה מעין שלוש" }
+        {
+          "type": "prayer",
+          "id": "birkat_hamazon",
+          "title": "ברכת המזון"
+        },
+        {
+          "type": "prayer",
+          "id": "mein_shalosh",
+          "title": "ברכה מעין שלוש"
+        }
+      ]
+    },
+    {
+      "title": "שמחות",
+      "entries": [
+        {
+          "type": "prayer",
+          "id": "brit_milah",
+          "title": "ברית מילה"
+        },
+        {
+          "type": "prayer",
+          "id": "sheva_brachot",
+          "title": "שבע ברכות"
+        }
       ]
     },
     {
       "title": "לוח",
       "entries": [
-        { "type": "calendar", "id": "calendar", "title": "לוח שנה עברי" }
+        {
+          "type": "calendar",
+          "id": "calendar",
+          "title": "לוח שנה עברי"
+        }
       ]
     }
   ]

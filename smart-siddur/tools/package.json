@@ -1,0 +1,10 @@
+{
+  "name": "smart-siddur-tools",
+  "private": true,
+  "type": "module",
+  "description": "Build-time helpers (Torah reading table). Not part of the app.",
+  "dependencies": {
+    "@hebcal/core": "6.14.1",
+    "@hebcal/leyning": "10.1.0"
+  }
+}

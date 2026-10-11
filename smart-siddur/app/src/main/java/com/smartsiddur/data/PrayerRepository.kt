@@ -36,9 +36,9 @@ class PrayerRepository(private val assets: AssetSource) {
         json.decodeFromString(Catalog.serializer(), stream.use { it.reader().readText() })
     }
 
-    val weekdayTorah: WeekdayTorah by lazy {
-        val stream = assets.open("$ROOT/torah_weekday.json") ?: error("Missing $ROOT/torah_weekday.json")
-        json.decodeFromString(WeekdayTorah.serializer(), stream.use { it.reader().readText() })
+    val torahReadings: TorahReadings by lazy {
+        val stream = assets.open("$ROOT/torah_readings.json") ?: error("Missing $ROOT/torah_readings.json")
+        json.decodeFromString(TorahReadings.serializer(), stream.use { it.reader().readText() })
     }
 
     fun load(nusach: String, prayerId: String): Prayer {

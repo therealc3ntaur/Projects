@@ -9,3 +9,5 @@ captures/
 .cxx/
 tools/.cache/
 .kotlin/
+tools/node_modules/
+__pycache__/

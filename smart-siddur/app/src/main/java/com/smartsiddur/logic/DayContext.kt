@@ -27,6 +27,8 @@ class DayContext private constructor(
     val highlights: List<String>
         get() = buildList {
             HIGHLIGHTS.forEach { (flag, label) -> if (flag in flags) add(label) }
+            // Saturday night only matters for Ma'ariv; on Sunday morning it isn't "מוצאי שבת"
+            if ("motzaei_shabbat" in flags && service == Service.MAARIV) add("מוצאי שבת")
             // Hallel is only part of Shacharit (and with no service, e.g. brachot, it isn't relevant)
             if ("hallel" in flags && service == Service.SHACHARIT) add(if ("hallel_shalem" in flags) "הלל שלם" else "חצי הלל")
             if (calendar.dayOfOmer > 0) add("ספירת העומר: ${formatter.formatHebrewNumber(calendar.dayOfOmer)}")
@@ -61,7 +63,7 @@ class DayContext private constructor(
             "motzaei_shabbat", "motzaei_yom_tov", "vihi_noam", "weekday_torah",
         )
 
-        private val DYNAMIC_FLAG = Regex("""(day_[1-7]|omer_([1-9]|[1-4]\d))""")
+        private val DYNAMIC_FLAG = Regex("""(day_[1-7]|omer_([1-9]|[1-4]\d)|sukkot_day_[1-7])""")
 
         fun isKnownFlag(name: String) = name in KNOWN_FLAGS || DYNAMIC_FLAG.matches(name)
 
@@ -75,7 +77,6 @@ class DayContext private constructor(
             "aseret_yemei_teshuva" to "עשרת ימי תשובה",
             "yaaleh_veyavo" to "יעלה ויבוא",
             "al_hanisim" to "על הניסים",
-            "motzaei_shabbat" to "מוצאי שבת",
         )
 
         private val rules = TefilaRules()
@@ -170,6 +171,9 @@ class DayContext private constructor(
                 (dayOfWeek == 2 || dayOfWeek == 5) && !jc.isRoshChodesh && !jc.isChanukah && !jc.isPurim &&
                     !shushanPurim && !jc.isTaanis && !jc.isCholHamoed && !jc.isYomTovAssurBemelacha,
             )
+
+            // Day of Sukkot (1 = 15 Tishrei), for the Musaf korbanot
+            if (month == JewishDate.TISHREI && day in 15..21) flags += "sukkot_day_${day - 14}"
 
             val omer = jc.dayOfOmer
             if (omer > 0) {

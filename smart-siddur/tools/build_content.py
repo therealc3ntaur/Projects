@@ -31,6 +31,8 @@ import re
 import sys
 import urllib.request
 
+import birnbaum
+
 EXPORT_URL = ("https://storage.googleapis.com/sefaria-export/json/Liturgy/Siddur/"
               "Siddur%20Ashkenaz/Hebrew/merged.json")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -391,6 +393,66 @@ def small(items):
     return out
 
 
+def haftarah_section(b):
+    """Haftarah with its weekday blessings; the app fills in the text (e.g. Tisha B'Av, fast-day
+    Mincha) and drops the section on days without one."""
+    page = "קריאת התורה לשחרית בשבת ויום טוב"
+    ls = birnbaum.lines(page)
+    before = ls.index(next(l for l in ls if l.startswith("לפני קריאת ההפטרה")))
+    after = ls.index(next(l for l in ls if l.startswith("אחרי קריאת ההפטרה")))
+    items = [
+        {"type": "instruction", "text": "לפני ההפטרה המפטיר מברך:"},
+        {"type": "text", "text": clean(ls[before + 1])},
+        {"type": "text", "text": "@haftarah"},
+        {"type": "instruction", "text": "אחרי ההפטרה:"},
+    ] + [{"type": "text", "text": clean(l)} for l in ls[after + 1:after + 5]]
+    b.custom("הפטרה", items)
+    b.doc["sections"][-1]["source"] = "haftarah"
+
+
+def chol_hamoed_musaf():
+    """The middle blessing of Musaf for Chol Hamoed, from Birnbaum, with the Shabbat
+    parentheticals removed and each festival's / day's lines tagged."""
+    page = "מוסף לשלוש רגלים"
+    lines = birnbaum.section(page, "אַתָּה בְחַרְתָּֽנוּ", "רְצֵה, יְהֹוָה")
+    no_shabbat = lambda l: re.sub(r"\s*\([^)]*\)\s*", " ", l).replace(" ,", ",").strip()
+
+    def opt(label_prefix, line_prefix):
+        """An inline festival option, e.g. 'בפסח: חַג הַמַּצּוֹת הַזֶּה, ...'."""
+        line = next(l for l in lines[start:] if l.startswith(line_prefix))
+        label, text = line.split(":", 1)
+        return f'<if when="{label_prefix}"><small>{label}:</small> {text.strip()}</if>'
+
+    def text(prefix):
+        return next(no_shabbat(l) for l in lines if no_shabbat(l).startswith(prefix))
+
+    items = [{"type": "text", "text": text("אַתָּה בְחַרְתָּֽנוּ")}]
+    start = 0
+    first_options = lines.index(next(l for l in lines if l.startswith("וַתִּתֶּן")))
+    start = first_options
+    items.append({"type": "text", "text": " ".join([
+        text("וַתִּתֶּן"), opt("pesach", "בפסח:"), opt("sukkot", "בסוכות:"), text("מִקְרָא קֹֽדֶשׁ"),
+    ])})
+    start = lines.index(next(l for l in lines if l.startswith("וּמִפְּנֵי")))
+    items.append({"type": "text", "text": " ".join([
+        text("וּמִפְּנֵי"), opt("pesach", "בפסח:"), opt("sukkot", "בסוכות:"), text("נַעֲשֶׂה וְנַקְרִיב"),
+    ])})
+
+    def korban(prefix):
+        return next(l for l in lines if l.startswith(prefix))
+
+    items.append({"type": "text", "when": "pesach", "text": "<small>בפסח:</small> " + korban("וְהִקְרַבְתֶּם אִשֶּׁה")})
+    days = ["הַשֵּׁנִי", "הַשְּׁלִישִׁי", "הָרְבִיעִי", "הַחֲמִישִׁי", "הַשִּׁשִּׁי", "הַשְּׁבִיעִי"]
+    for n, day in enumerate(days, start=2):
+        # Outside Israel each day also says the previous day's line (ספיקא דיומא)
+        when = f"sukkot_day_{n}" + (f" | (chul & sukkot_day_{n + 1})" if n < 7 else "")
+        items.append({"type": "text", "when": when, "text": korban("וּבַיּוֹם " + day)})
+    items.append({"type": "text", "text": korban("וּמִנְחָתָם")})
+    items.append({"type": "text", "text": text("אֱלֹהֵֽינוּ וֵאלֹהֵי אֲבוֹתֵֽינוּ, מֶֽלֶךְ רַחֲמָן")})
+    items.append({"type": "text", "text": text("וְהַשִּׂיאֵֽנוּ")})
+    return [dict(it, text=clean(it["text"])) for it in items]
+
+
 def birkat_kohanim(src):
     """Birkat Kohanim with duchening; the chazan's אלהינו... in small print."""
     bk = src.node("Weekday", "Shacharit", "Amidah", "Birkat Kohanim")
@@ -480,13 +542,14 @@ def build_shacharit(src):
     F = R + ("Reading from Sefer",)
     b.leaf(F + ("Birkat HaTorah",), when="torah_reading")
     b.custom("ברכת הגומל", small(make_items(src.node(*F, "Birkat Hagomel"))), when="torah_reading")
-    # Filled in by the app with the coming Shabbat's parsha (weekday aliyot)
-    b.custom("קריאה בפרשת השבוע", [], when="weekday_torah")
-    b.doc["sections"][-1]["source"] = "weekday_torah"
+    # Filled in by the app with the day's reading (parsha, Rosh Chodesh, Chanukah, fast...)
+    b.custom("קריאת התורה", [])
+    b.doc["sections"][-1]["source"] = "torah"
     b.leaf(F + ("Half Kaddish",), when="torah_reading")
     b.leaf(F + ("Raising the Torah",), when="torah_reading", overrides={
         3: {"when": "tachanun & (day_2 | day_5)", "span": 5},
     })
+    haftarah_section(b)
     b.tree(R + ("Returning Sefer to Aron",), when="torah_reading")
 
     b.part("אשרי ובא לציון")
@@ -494,12 +557,8 @@ def build_shacharit(src):
     b.leaf(C + ("Ashrei",))
     b.leaf(C + ("Lamenatze'ach",), when="lamenatzeach")
     b.leaf(C + ("Uva Letzion",))
-    b.custom("מוסף לחול המועד", [{
-        "type": "instruction",
-        "text": "בחול המועד אומרים כאן חצי קדיש ומתפללים מוסף לשלוש רגלים (עדיין לא נוסף לאפליקציה).",
-    }], when="chol_hamoed")
     # Rosh Chodesh: half kaddish + Musaf, then the service continues with Kaddish Shalem
-    b.custom("חצי קדיש", make_items(half_kaddish(src)), when="rosh_chodesh")
+    b.custom("חצי קדיש", make_items(half_kaddish(src)), when="rosh_chodesh | chol_hamoed")
     # Musaf for Rosh Chodesh: the weekday blessings (better vocalized in the source),
     # with the Rosh Chodesh middle blessing and no Ya'aleh Veyavo
     A = S + ("Amidah",)
@@ -518,6 +577,21 @@ def build_shacharit(src):
     b.custom("ברכת כהנים", birkat_kohanim(src), when=rc)
     b.leaf(A + ("Peace",), when=rc)
     b.leaf(A + ("Concluding Passage",), when=rc)
+
+    # Musaf for Chol Hamoed: weekday blessings around the festival middle blessing
+    ch = "chol_hamoed"
+    b.part("מוסף לחול המועד", when=ch)
+    for leaf in ("Patriarchs", "Divine Might"):
+        b.leaf(A + (leaf,), when=ch)
+    b.leaf(A + ("Kedushah",), title="קדושה", when=ch)
+    b.doc["sections"][-1]["collapsible"] = True
+    b.leaf(A + ("Holiness of God",), when=ch)
+    b.custom("קדושת היום", chol_hamoed_musaf(), when=ch)
+    b.leaf(A + ("Temple Service",), when=ch, raw=[temple[0], temple[4]])
+    b.leaf(A + ("Thanksgiving",), when=ch)
+    b.custom("ברכת כהנים", birkat_kohanim(src), when=ch)
+    b.leaf(A + ("Peace",), when=ch)
+    b.leaf(A + ("Concluding Passage",), when=ch)
     b.part("סיום התפילה")
     b.leaf(C + ("Kaddish Shalem",))
     b.leaf(C + ("Alenu",))
@@ -540,7 +614,26 @@ def build_mincha(src):
     b = Builder(src, "mincha", "מנחה", "mincha", "none")
     M = W + ("Minchah",)
     b.part("אשרי")
-    b.leaf(M + ("Ashrei",))
+    ashrei = src.node(*M, "Ashrei")
+    b.leaf(M + ("Ashrei",), raw=ashrei[:1])
+
+    # Fast days: Torah reading (ויחל) and haftarah (דרשו) before the half Kaddish
+    fast = "fast_day | tisha_bav"
+    S = W + ("Shacharit",)
+    R = S + ("Torah Reading",)
+    b.part("קריאת התורה", when=fast)
+    for leaf in ("Vayehi Binsoa", "Berich Shmei", "Lekha Hashem", "Vetigaleh Veteraeh"):
+        b.leaf(R + ("Removing the Torah from Ark", leaf), when=fast,
+               title=" " if leaf == "Lekha Hashem" else None)
+    b.leaf(R + ("Reading from Sefer", "Birkat HaTorah"), when=fast)
+    b.custom("קריאת התורה", [], when=fast)
+    b.doc["sections"][-1]["source"] = "torah"
+    b.leaf(R + ("Reading from Sefer", "Raising the Torah"), raw=src.node(*R, "Reading from Sefer", "Raising the Torah")[:3],
+           when=fast)
+    haftarah_section(b)
+    b.doc["sections"][-1]["when"] = fast
+    b.tree(R + ("Returning Sefer to Aron",), when=fast)
+    b.custom("חצי קדיש", make_items(ashrei[1:]))
     b.part("שמונה עשרה")
     b.amidah(M + ("Amida",), "Keduasha", exclude=("Birkat Kohanim", "Peace", "Concluding Passage"))
     fast = "fast_day | tisha_bav"
@@ -596,22 +689,90 @@ def build_maariv(src):
     b.write()
 
 
-def build_birkat_hamazon(src):
-    b = Builder(src, "birkat_hamazon", "ברכת המזון", None, "sunset")
+def birkat_hamazon_sections(b, src, zimun=None, extra_harachaman=None):
+    """Adds the Birkat Hamazon sections. A simcha can replace the zimun and add הרחמן lines
+    (after "בַּמָּרוֹם...")."""
     raw = src.node("Berachot", "Birkat HaMazon")
 
     def rng(a, z, overrides=None):
         ov = {k - a: v for k, v in (overrides or {}).items()}
         return make_items(raw[a:z + 1], ov)
 
+    harachaman = rng(49, 75)
+    if extra_harachaman:
+        i = next(i for i, it in enumerate(harachaman) if strip_nikud(plain(it["text"])).startswith("במרום"))
+        harachaman[i + 1:i + 1] = extra_harachaman
+
     b.custom("לפני ברכת המזון", rng(0, 3))
-    b.custom("זימון", rng(4, 19))
+    b.custom("זימון", zimun if zimun is not None else rng(4, 19))
     b.custom("ברכת הזן", rng(20, 21))
     b.custom("ברכת הארץ", rng(22, 30, {25: {"when": "al_hanisim"}}))
     b.custom("בונה ירושלים", rng(31, 46, {35: {"span": 9}}))
     b.custom("הטוב והמטיב", rng(47, 48))
-    b.custom("הרחמן", rng(49, 75))
+    b.custom("הרחמן", harachaman)
     b.custom("שכח ולא הזכיר", rng(76, 88), when="shabbat | rosh_chodesh | yom_tov")
+
+
+def build_birkat_hamazon(src):
+    b = Builder(src, "birkat_hamazon", "ברכת המזון", None, "sunset")
+    birkat_hamazon_sections(b, src)
+    b.write()
+
+
+def birn_items(lines):
+    """Birnbaum lines -> items. Unvocalized lines are rubrics; a vocalized line that doesn't end
+    a sentence continues on the next line (poems, split verses)."""
+    items = []
+    for line in lines:
+        p = plain(line)
+        if nikud_density(p) < 0.3:
+            items.append({"type": "instruction", "text": line})
+        elif items and items[-1]["type"] == "text" and not plain(items[-1]["text"]).endswith((".", ":", "׃")):
+            items[-1]["text"] += "\n" + line
+        else:
+            items.append({"type": "text", "text": line})
+    return [dict(it, text=inline_conditions(clean(it["text"]))) for it in items]
+
+
+def build_brit_milah(src):
+    b = Builder(src, "brit_milah", "ברית מילה", None, "none")
+    page = "ברית מילה"
+    ceremony = birn_items(birnbaum.section(page, "מכניסים", "בִּרְכַּת הַמָּזוֹן לִבְרִית מִילָה"))
+    # In Eretz Yisrael the father also says Shehecheyanu
+    i = next(i for i, it in enumerate(ceremony) if "לְהַכְנִיסוֹ" in it["text"])
+    ceremony[i + 1:i + 1] = [
+        {"type": "instruction", "text": "בארץ ישראל נוהגים שהאב מברך גם:", "when": "israel"},
+        {"type": "text", "when": "israel",
+         "text": "בָּרוּךְ אַתָּה, יְהֹוָה אֱלֹהֵֽינוּ, מֶֽלֶךְ הָעוֹלָם, שֶׁהֶחֱיָֽנוּ וְקִיְּמָֽנוּ וְהִגִּיעָֽנוּ לַזְּמַן הַזֶּה."},
+    ]
+    b.part("ברית מילה")
+    b.custom("סדר הברית", ceremony)
+
+    raw = src.node("Berachot", "Birkat HaMazon")
+    zimun = birn_items(birnbaum.section(page, "המזמן:", "ממשיכים ב"))
+    zimun += [{"type": "instruction", "text": "וממשיך:"}] + make_items(raw[12:20])
+    extra = birn_items(birnbaum.section(page, "הָרַחֲמָן, הוּא יְבָרֵךְ אֲבִי הַיֶּֽלֶד", "הערות"))
+    for it in extra:
+        it["when"] = None
+        it.pop("when")
+    b.part("ברכת המזון לברית מילה")
+    birkat_hamazon_sections(b, src, zimun=zimun, extra_harachaman=extra)
+    b.write()
+
+
+def build_sheva_brachot(src):
+    b = Builder(src, "sheva_brachot", "שבע ברכות", None, "none")
+    page = "אירוסין ונישואין"
+    brachot = birn_items(birnbaum.section(page, "לאחר קריאת הכתובה")[1:8])
+    assert len(brachot) == 7, brachot
+    note = {"type": "instruction", "text":
+            "שבע הברכות נאמרות בסוף ברכת המזון, אחרי ״עוֹשֶׂה שָׁלוֹם בִּמְרוֹמָיו...״, על כוס של ברכה. "
+            "שש הברכות הראשונות מתחלקות בין המסובים, והמברך ברכת המזון אומר ״בּוֹרֵא פְּרִי הַגָּֽפֶן״ בסוף."}
+    b.custom("שבע ברכות", [note] + brachot[1:] + brachot[:1])
+    zimun = birn_items(birnbaum.section(page, "דְּוַי הָסֵר", "ממשיכים"))
+    b.custom("הזימון בסעודת שבע ברכות", [
+        {"type": "instruction", "text": "בזימון, במקום ״בִּרְשׁוּת מָרָנָן... שֶׁאָכַֽלְנוּ מִשֶּׁלּוֹ״, המזמן אומר:"},
+    ] + zimun)
     b.write()
 
 
@@ -672,6 +833,8 @@ def main():
     build_maariv(src)
     build_birkat_hamazon(src)
     build_mein_shalosh(src)
+    build_brit_milah(src)
+    build_sheva_brachot(src)
 
 
 if __name__ == "__main__":

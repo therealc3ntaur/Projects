@@ -100,6 +100,20 @@ class DayContextTest {
     }
 
     @Test
+    fun motzaeiShabbatHighlightOnlyInMaariv() {
+        val sunday = LocalDate.of(2026, 10, 18)
+        assertTrue("מוצאי שבת" in DayContext.of(sunday, true, Service.MAARIV).highlights)
+        assertFalse("מוצאי שבת" in DayContext.of(sunday, true, Service.SHACHARIT).highlights)
+        assertFalse("מוצאי שבת" in DayContext.of(sunday, true, null).highlights)
+    }
+
+    @Test
+    fun sukkotDayForMusaf() {
+        assertTrue("sukkot_day_3" in flags(2026, 9, 28)) // 17 Tishrei
+        assertTrue("chol_hamoed" in flags(2026, 9, 28))
+    }
+
+    @Test
     fun omerCount() {
         val f = flags(2027, 5, 25) // Lag BaOmer
         assertTrue("omer" in f)

@@ -90,7 +90,7 @@ fun PrayerScreen(entry: MenuEntry, context: ScreenContext) {
     LaunchedEffect(entry.id, settings.nusach) {
         prayer = withContext(Dispatchers.IO) {
             runCatching {
-                context.repository.weekdayTorah // parse the reading data off the main thread too
+                context.repository.torahReadings // parse the reading data off the main thread too
                 context.repository.load(settings.nusach, entry.id)
             }
         }
@@ -117,7 +117,7 @@ fun PrayerScreen(entry: MenuEntry, context: ScreenContext) {
     var expanded by remember(entry.id) { mutableStateOf(emptySet<Int>()) }
     val rows = remember(loaded, day, settings.smartMode, expanded) {
         loaded?.let {
-            val resolved = TorahReading.resolve(it, day, context.repository.weekdayTorah)
+            val resolved = TorahReading.resolve(it, day, context.repository.torahReadings, settings.inIsrael)
             buildRows(resolved, day.flags, settings.smartMode, expanded)
         }.orEmpty()
     }

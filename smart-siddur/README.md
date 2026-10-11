@@ -7,6 +7,10 @@ a Hebrew calendar. The text is Nusach Ashkenaz, and the app is set up so more nu
 ## Features
 
 - **Prayers:** Shacharit, Mincha, Ma'ariv, Birkat Hamazon and Me'ein Shalosh (Al Hamichya + Borei Nefashot).
+- **Simchas:** Brit Milah (the ceremony with rubrics, then Birkat Hamazon with the brit zimun and הרחמן
+  additions) and Sheva Brachot (the brachot, the special zimun, and where they go in benching).
+- **Musaf** for Rosh Chodesh and Chol Hamoed (including the day's korbanot for Sukkot, with the diaspora's
+  ספיקא דיומא).
 - **Hamburger menu** (right-side drawer, RTL) for choosing what's shown, built from `assets/siddur/index.json`.
 - **Pinch to change text size** anywhere in a prayer; the size is saved. There's also a slider in Settings.
 - **Smart mode:** the prayer is filtered for the current Hebrew day, and date-specific insertions are highlighted.
@@ -18,8 +22,9 @@ a Hebrew calendar. The text is Nusach Ashkenaz, and the app is set up so more nu
 - **Zmanim:** סוף זמן ק״ש under the Kri'at Shema heading, and נץ החמה with סוף זמן תפילה under Shemoneh
   Esrei (MGA and GRA, calculated with KosherJava). These use the phone's approximate location: the app asks once,
   and you can refresh it in Settings. Without location, the times are estimated and labeled as approximate.
-- **Weekly Torah reading** on Mondays and Thursdays (the weekday aliyot of the coming Shabbat's parsha),
-  after Birkat Hagomel. Days with their own reading (Rosh Chodesh, Chanukah, fasts...) don't show it yet.
+- **Torah reading** for every weekday that has one, split into aliyot: Monday/Thursday parsha, Rosh Chodesh,
+  Chanukah, Purim, fast days (including Mincha with haftarah), Tisha B'Av and Chol Hamoed (Israel and diaspora
+  differ). The table covers 2025–2050; after that, Mondays and Thursdays still get the parsha.
 - **Kedusha** (said only in the repetition) is a collapsed section right before אתה קדוש; tap to open it.
 - **Section jump:** tap the prayer name in the top bar to jump to any section.
 - **Hebrew calendar:** a Hebrew month grid with Yom Tov, fasts, Rosh Chodesh and minor holidays color-coded.
@@ -136,15 +141,17 @@ The Ashkenaz text comes from Sefaria's *Siddur Ashkenaz* export (the "merged" He
 python3 tools/build_content.py            # downloads the export, or pass a local merged.json path
 ```
 
-The weekday Torah readings come from Sefaria's "Tanach with Nikkud", divided into aliyot according to
-[Hebcal's leyning data](https://github.com/hebcal/hebcal-leyning) (BSD-2-Clause). To regenerate:
-`python3 tools/build_torah.py`.
+The Torah readings and haftarot come from Sefaria's "Tanach with Nikkud". Which reading falls on which day,
+and the aliyah divisions, are computed with [Hebcal](https://github.com/hebcal) (@hebcal/core,
+@hebcal/leyning; BSD-2-Clause). To regenerate: `(cd tools && npm install) && python3 tools/build_torah.py`.
+
+Musaf for Chol Hamoed, Brit Milah, Sheva Brachot and the haftarah blessings come from Philip Birnbaum's
+*HaSiddur HaShalem* (1949) as transcribed on Hebrew Wikisource (see `tools/birnbaum.py`).
 
 Sefaria's merged version pulls from several source editions with different licenses. Check those licenses before
 publishing the app.
 
 ### Not included yet
 
-- Musaf for Chol Hamoed (a placeholder note appears on those days). Musaf for Rosh Chodesh is included.
 - Shabbat and Yom Tov prayers, Birkat HaLevana and Kri'at Shema al HaMita. All of these exist in the Sefaria
   export, so they can be added through `build_content.py`.

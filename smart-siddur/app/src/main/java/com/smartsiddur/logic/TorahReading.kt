@@ -6,9 +6,28 @@ import com.kosherjava.zmanim.hebrewcalendar.JewishDate
 import com.smartsiddur.data.Item
 import com.smartsiddur.data.ItemType
 import com.smartsiddur.data.Prayer
-import com.smartsiddur.data.WeekdayTorah
+import com.smartsiddur.data.Reading
+import com.smartsiddur.data.Service
+import com.smartsiddur.data.TorahReadings
 
 object TorahReading {
+
+    /** A reading with its title, e.g. "פרשת לך לך" or "ראש חודש כסלו". */
+    data class Today(val reading: Reading, val name: String)
+
+    /** The day's reading for [service], from the table (or, outside it, the Monday/Thursday parsha). */
+    fun forDay(day: DayContext, data: TorahReadings, inIsrael: Boolean, service: Service?): Today? {
+        val date = day.date.toString()
+        val ref = if (date in data.from..data.to) {
+            val entry = (if (inIsrael) data.il else data.chul)[date] ?: return null
+            if (service == Service.MINCHA) entry.m else entry.s
+        } else if (service == Service.SHACHARIT && "weekday_torah" in day.flags) {
+            weekdayParsha(day.calendar)?.let { data.parsha[it.toString()] }
+        } else {
+            null
+        }
+        return ref?.let { (reading, name) -> Today(data.readings[reading], data.names[name]) }
+    }
 
     /** For combined parshiyot, the weekday reading is from the first of the pair. */
     private val FIRST_OF_COMBINED = mapOf(
@@ -29,22 +48,41 @@ object TorahReading {
         return FIRST_OF_COMBINED[parsha] ?: parsha.ordinal.takeIf { it in 1..54 }
     }
 
-    /** Fills sections with `"source": "weekday_torah"` with the day's reading. */
-    fun resolve(prayer: Prayer, day: DayContext, torah: WeekdayTorah): Prayer {
-        if (prayer.sections.none { it.source == "weekday_torah" }) return prayer
-        val parsha = weekdayParsha(day.calendar)?.let { num -> torah.parshiyot.firstOrNull { it.num == num } }
+    /**
+     * Fills the prayer's `"source": "torah"` section with the day's reading and its
+     * `"source": "haftarah"` section with the haftarah (in place of the "@haftarah" item).
+     * Sections are emptied (and so hidden) when there is nothing to read.
+     */
+    fun resolve(prayer: Prayer, day: DayContext, data: TorahReadings, inIsrael: Boolean): Prayer {
+        if (prayer.sections.none { it.source != null }) return prayer
+        val today = forDay(day, data, inIsrael, prayer.service)
         return prayer.copy(
             sections = prayer.sections.map { section ->
-                if (section.source != "weekday_torah" || parsha == null) return@map section
-                section.copy(
-                    title = "קריאה בפרשת ${parsha.name}",
-                    items = parsha.aliyot.flatMap { aliyah ->
-                        listOf(
-                            Item(ItemType.INSTRUCTION, "<small>${aliyah.name}:</small>"),
-                            Item(ItemType.TEXT, aliyah.verses.joinToString(" ")),
+                when (section.source) {
+                    "torah" -> section.copy(
+                        title = today?.let { if (it.name.startsWith("פרשת")) "קריאה ב${it.name}" else it.name }
+                            ?: section.title,
+                        items = today?.reading?.aliyot.orEmpty().flatMap { aliyah ->
+                            listOf(
+                                Item(ItemType.INSTRUCTION, "<small>${aliyah.name}:</small>"),
+                                Item(ItemType.TEXT, aliyah.verses.joinToString(" ")),
+                            )
+                        },
+                    )
+                    "haftarah" -> {
+                        val haftarah = today?.reading?.haftarah
+                        section.copy(
+                            items = if (haftarah == null) {
+                                emptyList()
+                            } else {
+                                section.items.map {
+                                    if (it.text == "@haftarah") Item(ItemType.TEXT, haftarah.joinToString(" ")) else it
+                                }
+                            },
                         )
-                    },
-                )
+                    }
+                    else -> section
+                }
             },
         )
     }
