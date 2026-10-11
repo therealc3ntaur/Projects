@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.smartsiddur.R
 import com.smartsiddur.data.MenuEntry
@@ -95,6 +96,7 @@ fun SiddurApp(repository: PrayerRepository, settings: Settings) {
                         Text(
                             group.title,
                             style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp),
                         )

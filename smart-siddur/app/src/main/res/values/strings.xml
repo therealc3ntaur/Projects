@@ -23,8 +23,6 @@
     <string name="settings_display">תצוגה</string>
     <string name="settings_smart">סידור חכם</string>
     <string name="settings_smart_desc">הצג רק את מה שאומרים היום (יעלה ויבוא, על הניסים, תחנון וכו׳)</string>
-    <string name="settings_notes">הלכות והערות ארוכות</string>
-    <string name="settings_notes_desc">הצג את ההערות ההלכתיות שבין קטעי התפילה</string>
     <string name="settings_font_size">גודל טקסט</string>
     <string name="settings_font_size_desc">אפשר גם לצבוט בשתי אצבעות בתוך התפילה</string>
     <string name="settings_nusach">נוסח</string>

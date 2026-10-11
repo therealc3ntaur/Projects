@@ -21,7 +21,6 @@ class Settings(context: Context) {
     var nusach by Pref(KEY_NUSACH, "ashkenaz", { k, d -> getString(k, d) ?: d }, SharedPreferences.Editor::putString)
     var inIsrael by Pref(KEY_IN_ISRAEL, TimeZone.getDefault().id in ISRAEL_TIME_ZONES, SharedPreferences::getBoolean, SharedPreferences.Editor::putBoolean)
     var smartMode by Pref(KEY_SMART, true, SharedPreferences::getBoolean, SharedPreferences.Editor::putBoolean)
-    var showNotes by Pref(KEY_NOTES, false, SharedPreferences::getBoolean, SharedPreferences.Editor::putBoolean)
     var themeMode by Pref(
         KEY_THEME,
         ThemeMode.SYSTEM,
@@ -63,7 +62,6 @@ class Settings(context: Context) {
         private const val KEY_NUSACH = "nusach"
         private const val KEY_IN_ISRAEL = "in_israel"
         private const val KEY_SMART = "smart_mode"
-        private const val KEY_NOTES = "show_notes"
         private const val KEY_THEME = "theme_mode"
 
         private val ISRAEL_TIME_ZONES = setOf("Asia/Jerusalem", "Asia/Tel_Aviv", "Israel")

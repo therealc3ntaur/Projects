@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -46,7 +45,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -59,8 +57,16 @@ import com.smartsiddur.data.Rollover
 import com.smartsiddur.data.Settings
 import com.smartsiddur.data.ThemeMode
 import com.smartsiddur.ui.theme.SiddurIcons
+import com.smartsiddur.ui.theme.SiddurSerif
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.isSystemInDarkTheme
+import com.smartsiddur.logic.Condition
 import com.smartsiddur.logic.DayContext
+import androidx.compose.ui.text.SpanStyle
 import com.smartsiddur.logic.PrayerRow
 import com.smartsiddur.logic.PrayerTime
 import com.smartsiddur.logic.buildRows
@@ -96,8 +102,21 @@ fun PrayerScreen(entry: MenuEntry, context: ScreenContext) {
             loaded?.service,
         )
     }
-    val rows = remember(loaded, day, settings.smartMode, settings.showNotes) {
-        loaded?.let { buildRows(it, day.flags, settings.smartMode, settings.showNotes) }.orEmpty()
+    val rows = remember(loaded, day, settings.smartMode) {
+        loaded?.let { buildRows(it, day.flags, settings.smartMode) }.orEmpty()
+    }
+
+    // Options embedded in a line: today's are highlighted; others are hidden (smart mode) or dimmed
+    val colors = MaterialTheme.colorScheme
+    val optionStyle: (String) -> SpanStyle? = remember(day, settings.smartMode, colors) {
+        { condition ->
+            when {
+                Condition.isSatisfied(condition, day.flags) ->
+                    SpanStyle(background = colors.secondaryContainer.copy(alpha = 0.8f))
+                settings.smartMode -> null
+                else -> SpanStyle(color = colors.onSurface.copy(alpha = 0.4f))
+            }
+        }
     }
 
     // Live font size while pinching; persisted when the gesture ends
@@ -110,7 +129,12 @@ fun PrayerScreen(entry: MenuEntry, context: ScreenContext) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(loaded?.title ?: entry.title) },
+                title = {
+                    // Tapping the prayer's name opens the jump-to-section menu
+                    SectionJumpTitle(loaded?.title ?: entry.title, rows) { index ->
+                        scope.launch { listState.scrollToItem(index) }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = context.openMenu) {
                         Icon(Icons.Filled.Menu, contentDescription = stringResource(R.string.menu))
@@ -118,7 +142,6 @@ fun PrayerScreen(entry: MenuEntry, context: ScreenContext) {
                 },
                 actions = {
                     ThemeToggle(settings)
-                    SectionJumpMenu(rows) { index -> scope.launch { listState.scrollToItem(index) } }
                 },
             )
         },
@@ -161,7 +184,7 @@ fun PrayerScreen(entry: MenuEntry, context: ScreenContext) {
                         itemsIndexed(rows, key = { _, row -> row.key }) { _, row ->
                             when (row) {
                                 is PrayerRow.Header -> SectionHeader(row, fontSize)
-                                is PrayerRow.Text -> PrayerText(row, fontSize)
+                                is PrayerRow.Text -> PrayerText(row, fontSize, optionStyle)
                             }
                         }
                     }
@@ -200,15 +223,24 @@ private fun ZoomIndicator(visible: Boolean, fontSize: Float, modifier: Modifier)
 }
 
 @Composable
-private fun SectionJumpMenu(rows: List<PrayerRow>, onJump: (Int) -> Unit) {
+private fun SectionJumpTitle(title: String, rows: List<PrayerRow>, onJump: (Int) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val headers = remember(rows) {
-        rows.withIndex().filter { it.value is PrayerRow.Header }
+        rows.withIndex().filter { (it.value as? PrayerRow.Header)?.title?.isNotBlank() == true }
     }
-    if (headers.isEmpty()) return
     Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(Icons.AutoMirrored.Filled.List, contentDescription = stringResource(R.string.jump_to_section))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(
+                    enabled = headers.isNotEmpty(),
+                    onClickLabel = stringResource(R.string.jump_to_section),
+                ) { expanded = true }
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+        ) {
+            Text(title)
+            if (headers.isNotEmpty()) Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             headers.forEach { (index, row) ->
@@ -279,7 +311,7 @@ private fun DayBanner(
 @Composable
 private fun SectionHeader(row: PrayerRow.Header, fontSize: Float) {
     if (row.level == 1) {
-        Column(Modifier.fillMaxWidth().padding(top = 28.dp, bottom = 8.dp)) {
+        Column(Modifier.fillMaxWidth().padding(top = 40.dp, bottom = 8.dp)) {
             Text(
                 row.title,
                 fontSize = (fontSize * 1.1f).sp,
@@ -290,47 +322,59 @@ private fun SectionHeader(row: PrayerRow.Header, fontSize: Float) {
             )
             HorizontalDivider(Modifier.padding(top = 6.dp), color = MaterialTheme.colorScheme.outlineVariant)
         }
+    } else if (row.title.isBlank()) {
+        Spacer(Modifier.height(24.dp))
     } else {
         Text(
             row.title,
             fontSize = (fontSize * 0.8f).sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.padding(top = 18.dp, bottom = 4.dp),
+            modifier = Modifier.padding(top = 32.dp, bottom = 6.dp),
         )
     }
 }
 
 @Composable
-private fun PrayerText(row: PrayerRow.Text, fontSize: Float) {
+private fun PrayerText(row: PrayerRow.Text, fontSize: Float, optionStyle: (String) -> SpanStyle?) {
     val colors = MaterialTheme.colorScheme
-    val text = remember(row.item.text, colors.onSurfaceVariant) {
-        parseMarkup(row.item.text, colors.onSurfaceVariant)
+    val text = remember(row.item.text, colors.onSurfaceVariant, optionStyle) {
+        parseMarkup(row.item.text, colors.onSurfaceVariant, optionStyle)
     }
-    val (scale, color) = when (row.item.type) {
-        ItemType.TEXT -> 1f to colors.onSurface
-        ItemType.INSTRUCTION -> 0.72f to colors.onSurfaceVariant
-        ItemType.NOTE -> 0.66f to colors.onSurfaceVariant
-    }
-    var modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+    val isText = row.item.type == ItemType.TEXT
+    val scale = if (isText) 1f else 0.72f
+    val color = if (isText) colors.onSurface else colors.onSurfaceVariant
+    var modifier = Modifier.fillMaxWidth()
     if (row.inactive) modifier = modifier.alpha(0.4f)
-    if (row.highlighted) {
-        modifier = modifier
-            .background(colors.secondaryContainer.copy(alpha = 0.55f), RoundedCornerShape(8.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    } else if (row.item.type == ItemType.NOTE) {
-        modifier = modifier
-            .background(colors.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+    modifier = if (row.highlighted) {
+        // Consecutive highlighted rows (label + text) share one continuous background
+        val corner = 10.dp
+        val shape = RoundedCornerShape(
+            topStart = if (row.block.isStart) corner else 0.dp,
+            topEnd = if (row.block.isStart) corner else 0.dp,
+            bottomStart = if (row.block.isEnd) corner else 0.dp,
+            bottomEnd = if (row.block.isEnd) corner else 0.dp,
+        )
+        modifier
+            .padding(top = if (row.block.isStart) 4.dp else 0.dp, bottom = if (row.block.isEnd) 4.dp else 0.dp)
+            .background(colors.secondaryContainer.copy(alpha = 0.55f), shape)
+            .padding(
+                start = 10.dp,
+                end = 10.dp,
+                top = if (row.block.isStart) 8.dp else 3.dp,
+                bottom = if (row.block.isEnd) 8.dp else 3.dp,
+            )
+    } else {
+        modifier.padding(vertical = 3.dp)
     }
     Text(
         text = text,
         modifier = modifier,
         fontSize = (fontSize * scale).sp,
         lineHeight = (fontSize * scale * 1.6f).sp,
-        fontFamily = if (row.item.type == ItemType.TEXT) FontFamily.Serif else FontFamily.Default,
+        fontFamily = SiddurSerif,
         color = color,
-        textAlign = if (row.item.type == ItemType.TEXT) TextAlign.Justify else TextAlign.Start,
+        textAlign = if (isText) TextAlign.Justify else TextAlign.Start,
     )
 }
 

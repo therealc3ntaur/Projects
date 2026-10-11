@@ -9,6 +9,7 @@ import com.smartsiddur.data.Section
 sealed interface PrayerRow {
     val key: String
 
+    /** A section heading; a blank [title] just adds space (e.g. between psalms). */
     data class Header(val title: String, val level: Int, override val key: String) : PrayerRow
 
     data class Text(
@@ -17,8 +18,17 @@ sealed interface PrayerRow {
         val highlighted: Boolean,
         /** Not said today; only shown when smart mode is off. */
         val inactive: Boolean,
+        /** Where this row sits in a run of consecutive highlighted rows, so they draw as one block. */
+        val block: BlockPosition = BlockPosition.NONE,
         override val key: String,
     ) : PrayerRow
+}
+
+enum class BlockPosition {
+    NONE, SINGLE, FIRST, MIDDLE, LAST;
+
+    val isStart get() = this == SINGLE || this == FIRST
+    val isEnd get() = this == SINGLE || this == LAST
 }
 
 /**
@@ -26,12 +36,12 @@ sealed interface PrayerRow {
  *
  * In smart mode, sections and items whose condition is false are dropped. Otherwise everything
  * is shown and the rows that don't apply today are marked [PrayerRow.Text.inactive].
+ * Halachic notes (type "note") are never shown.
  */
 fun buildRows(
     prayer: Prayer,
     flags: Set<String>,
     smartMode: Boolean,
-    showNotes: Boolean,
 ): List<PrayerRow> {
     class Visible(val section: Section, val index: Int, val rows: List<PrayerRow.Text>)
 
@@ -39,7 +49,7 @@ fun buildRows(
         val sectionActive = Condition.isSatisfied(section.`when`, flags)
         if (smartMode && !sectionActive) return@mapIndexedNotNull null
         val rows = section.items.mapIndexedNotNull { ii, item ->
-            if (item.type == ItemType.NOTE && !showNotes) return@mapIndexedNotNull null
+            if (item.type == ItemType.NOTE) return@mapIndexedNotNull null
             val active = sectionActive && Condition.isSatisfied(item.`when`, flags)
             if (smartMode && !active) return@mapIndexedNotNull null
             PrayerRow.Text(
@@ -58,7 +68,22 @@ fun buildRows(
         val emptyPart = v.section.level == 1 && v.rows.isEmpty() && (next == null || next.section.level == 1)
         if (emptyPart) return@forEachIndexed
         result += PrayerRow.Header(v.section.title, v.section.level, "h${v.index}")
-        result += v.rows
+        result += markBlocks(v.rows)
     }
     return result
+}
+
+/** Marks runs of consecutive highlighted rows (e.g. a label and its text) as one block. */
+private fun markBlocks(rows: List<PrayerRow.Text>): List<PrayerRow.Text> = rows.mapIndexed { i, row ->
+    if (!row.highlighted) return@mapIndexed row
+    val prev = rows.getOrNull(i - 1)?.highlighted == true
+    val next = rows.getOrNull(i + 1)?.highlighted == true
+    row.copy(
+        block = when {
+            prev && next -> BlockPosition.MIDDLE
+            prev -> BlockPosition.LAST
+            next -> BlockPosition.FIRST
+            else -> BlockPosition.SINGLE
+        },
+    )
 }

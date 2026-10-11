@@ -25,7 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontFamily
+import com.smartsiddur.ui.theme.SiddurSerif
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartsiddur.R
@@ -100,12 +100,6 @@ fun SettingsScreen(context: ScreenContext) {
                 checked = settings.smartMode,
                 onChange = { settings.smartMode = it },
             )
-            SwitchRow(
-                title = stringResource(R.string.settings_notes),
-                description = stringResource(R.string.settings_notes_desc),
-                checked = settings.showNotes,
-                onChange = { settings.showNotes = it },
-            )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_font_size)) },
                 supportingContent = {
@@ -119,7 +113,7 @@ fun SettingsScreen(context: ScreenContext) {
                         Text(
                             "בָּרוּךְ אַתָּה יְהֹוָה",
                             fontSize = settings.fontSize.sp,
-                            fontFamily = FontFamily.Serif,
+                            fontFamily = SiddurSerif,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                     }

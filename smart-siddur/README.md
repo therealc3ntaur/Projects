@@ -15,13 +15,14 @@ a Hebrew calendar. The text is Nusach Ashkenaz, and the app is set up so more nu
   - Ma'ariv after midday, and the brachot after sunset, count as the next Hebrew day. The *אחרי השקיעה* chip
     switches this by hand.
   - On launch the app opens the prayer that fits the time of day.
-- **Section jump** menu inside each prayer.
+- **Section jump:** tap the prayer name in the top bar to jump to any section.
 - **Hebrew calendar:** a Hebrew month grid with Yom Tov, fasts, Rosh Chodesh and minor holidays color-coded.
   Tapping a day shows its details: Gregorian date, holidays, parsha and omer. The month's events are listed below
   the grid.
 - **Dark / night mode:** follows the phone by default; choose light or dark in Settings, or tap the moon/sun icon in a prayer.
 - **Settings:** nusach, theme, Israel/diaspora (this affects holidays, tal umatar and some customs), smart mode,
-  long halachic notes, and text size.
+  and text size.
+- Bundled **Noto Serif Hebrew** font (SIL Open Font License, see `FONT_LICENSE-NotoSerifHebrew.txt`).
 - The screen stays on while a prayer is open.
 
 ## Building
@@ -73,8 +74,12 @@ tools/build_content.py       regenerates the prayer JSON from the Sefaria export
    }
    ```
 
-   - `type` is `text` (prayer), `instruction` (short rubric) or `note` (long halachic note, hidden by default).
-   - `text` may use `<b>`, `<small>` and `<big>`, plus newlines.
+   - `type` is `text` (prayer) or `instruction` (short rubric). Items of type `note` are never shown.
+   - `text` may use `<b>`, `<small>` (also used for quieter passages such as Modim d'Rabbanan) and `<big>`,
+     plus newlines.
+   - An option embedded in a line goes in `<if when="expr">…</if>`. For example, Ya'aleh Veyavo's
+     `<if when="rosh_chodesh"><small>לר"ח:</small> רֹאשׁ הַחֹדֶשׁ הַזֶּה:</if>` only shows on Rosh Chodesh.
+   - A section with an empty `title` gets no heading, only spacing (used for the psalms).
    - `rollover` is `none`, `noon` (Ma'ariv) or `sunset` (brachot). It decides which Hebrew day the prayer belongs to.
    - `service` is `shacharit`, `mincha`, `maariv` or `null`. It is used for day rules such as tachanun.
 2. Add a menu entry to `assets/siddur/index.json`: `{ "type": "prayer", "id": "tefilat_haderech", "title": "תפילת הדרך" }`.
