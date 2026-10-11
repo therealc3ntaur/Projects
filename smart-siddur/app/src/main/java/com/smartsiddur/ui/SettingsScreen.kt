@@ -30,6 +30,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartsiddur.R
 import com.smartsiddur.data.Settings
+import com.smartsiddur.data.DeviceLocation
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import java.util.Locale
 import com.smartsiddur.data.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,6 +104,7 @@ fun SettingsScreen(context: ScreenContext) {
                 checked = settings.inIsrael,
                 onChange = { settings.inIsrael = it },
             )
+            ZmanimLocationRow(settings)
 
             SettingsHeader(stringResource(R.string.settings_display))
             SwitchRow(
@@ -148,5 +161,46 @@ private fun SwitchRow(title: String, description: String, checked: Boolean, onCh
         supportingContent = { Text(description) },
         trailingContent = { Switch(checked = checked, onCheckedChange = null) },
         modifier = Modifier.toggleable(value = checked, role = Role.Switch, onValueChange = onChange),
+    )
+}
+
+/** Where zmanim are calculated for, with a button to (re)read the device location. */
+@Composable
+private fun ZmanimLocationRow(settings: Settings) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
+    var failed by remember { mutableStateOf(false) }
+    fun refresh() = scope.launch {
+        busy = true
+        failed = !DeviceLocation.refresh(context, settings)
+        busy = false
+    }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) refresh() else failed = true
+    }
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.settings_zmanim_location)) },
+        supportingContent = {
+            Text(
+                when {
+                    failed -> stringResource(R.string.settings_location_failed)
+                    settings.hasLocation -> stringResource(
+                        R.string.settings_location_device,
+                        "%.3f".format(Locale.US, settings.latitude),
+                        "%.3f".format(Locale.US, settings.longitude),
+                    )
+                    else -> stringResource(R.string.settings_location_estimated)
+                },
+            )
+        },
+        trailingContent = {
+            TextButton(
+                enabled = !busy,
+                onClick = {
+                    if (DeviceLocation.hasPermission(context)) refresh() else launcher.launch(DeviceLocation.PERMISSION)
+                },
+            ) { Text(stringResource(R.string.settings_location_update)) }
+        },
     )
 }

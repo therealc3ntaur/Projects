@@ -78,10 +78,6 @@
      "text": "<b>שְׁמַ<big>ע</big> יִשְׂרָאֵל יְהֹוָה אֱלֹהֵֽינוּ יְהֹוָה אֶחָ<big>ד</big>:</b>"
     },
     {
-     "type": "instruction",
-     "text": "<small>יש להפסיק מעט בין אחד לברוך כי עיקר קבול עול מלכות שמים היא פסוק ראשון. ויאמר בלחש:</small>"
-    },
-    {
      "type": "text",
      "text": "<small>בָּרוּךְ שֵׁם כְּבוֹד מַלְכוּתוֹ לְעוֹלָם וָעֶד:</small>"
     },
@@ -221,23 +217,13 @@
      "text": "<b>אַתָּה גִבּוֹר</b> לְעוֹלָם אֲדֹנָי מְחַיֶּה מֵתִים אַתָּה רַב לְהוֹשִֽׁיעַ:"
     },
     {
-     "type": "instruction",
-     "text": "<small>בקיץ:</small>",
+     "type": "text",
+     "text": "<small>בקיץ:</small> מוֹרִיד הַטָּל",
      "when": "morid_hatal"
     },
     {
      "type": "text",
-     "text": "מוֹרִיד הַטָּל",
-     "when": "morid_hatal"
-    },
-    {
-     "type": "instruction",
-     "text": "<small>בחורף:</small>",
-     "when": "mashiv_haruach"
-    },
-    {
-     "type": "text",
-     "text": "מַשִּׁיב הָרֽוּחַ וּמוֹרִיד הַגֶּֽשֶׁם:",
+     "text": "<small>בחורף:</small> מַשִּׁיב הָרֽוּחַ וּמוֹרִיד הַגֶּֽשֶׁם:",
      "when": "mashiv_haruach"
     },
     {

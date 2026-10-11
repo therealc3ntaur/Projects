@@ -66,6 +66,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.smartsiddur.logic.Condition
 import com.smartsiddur.logic.DayContext
+import com.smartsiddur.logic.Place
+import com.smartsiddur.logic.Zmanim
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import androidx.compose.ui.text.SpanStyle
 import com.smartsiddur.logic.PrayerRow
 import com.smartsiddur.logic.PrayerTime
@@ -89,10 +95,11 @@ fun PrayerScreen(entry: MenuEntry, context: ScreenContext) {
     val scope = rememberCoroutineScope()
     val loaded = prayer?.getOrNull()
 
-    var afterNightfall by remember(loaded, settings.inIsrael) {
+    val place = Place.of(settings.latitude, settings.longitude, settings.inIsrael, ZoneId.systemDefault())
+    var afterNightfall by remember(loaded, place) {
         mutableStateOf(
             loaded != null &&
-                PrayerTime.isAfterNightfall(loaded.rollover, ZonedDateTime.now(), settings.inIsrael),
+                PrayerTime.isAfterNightfall(loaded.rollover, ZonedDateTime.now(), place),
         )
     }
     val day = remember(loaded, afterNightfall, settings.inIsrael) {
@@ -102,9 +109,12 @@ fun PrayerScreen(entry: MenuEntry, context: ScreenContext) {
             loaded?.service,
         )
     }
-    val rows = remember(loaded, day, settings.smartMode) {
-        loaded?.let { buildRows(it, day.flags, settings.smartMode) }.orEmpty()
+    // Collapsible sections (Kedusha) the user has opened
+    var expanded by remember(entry.id) { mutableStateOf(emptySet<Int>()) }
+    val rows = remember(loaded, day, settings.smartMode, expanded) {
+        loaded?.let { buildRows(it, day.flags, settings.smartMode, expanded) }.orEmpty()
     }
+    val zmanim = remember(day.date, place) { PrayerTime.zmanim(day.date, ZoneId.systemDefault(), place) }
 
     // Options embedded in a line: today's are highlighted; others are hidden (smart mode) or dimmed
     val colors = MaterialTheme.colorScheme
@@ -183,7 +193,13 @@ fun PrayerScreen(entry: MenuEntry, context: ScreenContext) {
                     ) {
                         itemsIndexed(rows, key = { _, row -> row.key }) { _, row ->
                             when (row) {
-                                is PrayerRow.Header -> SectionHeader(row, fontSize)
+                                is PrayerRow.Header -> SectionHeader(row, fontSize, zmanim) {
+                                    expanded = if (row.sectionIndex in expanded) {
+                                        expanded - row.sectionIndex
+                                    } else {
+                                        expanded + row.sectionIndex
+                                    }
+                                }
                                 is PrayerRow.Text -> PrayerText(row, fontSize, optionStyle)
                             }
                         }
@@ -309,8 +325,10 @@ private fun DayBanner(
 }
 
 @Composable
-private fun SectionHeader(row: PrayerRow.Header, fontSize: Float) {
-    if (row.level == 1) {
+private fun SectionHeader(row: PrayerRow.Header, fontSize: Float, zmanim: Zmanim, onToggle: () -> Unit) {
+    if (row.collapsible) {
+        CollapsibleHeader(row, fontSize, onToggle)
+    } else if (row.level == 1) {
         Column(Modifier.fillMaxWidth().padding(top = 40.dp, bottom = 8.dp)) {
             Text(
                 row.title,
@@ -320,6 +338,15 @@ private fun SectionHeader(row: PrayerRow.Header, fontSize: Float) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
+            row.zmanim?.let { kind ->
+                Text(
+                    zmanimLine(kind, zmanim),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.secondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                )
+            }
             HorizontalDivider(Modifier.padding(top = 6.dp), color = MaterialTheme.colorScheme.outlineVariant)
         }
     } else if (row.title.isBlank()) {
@@ -334,6 +361,53 @@ private fun SectionHeader(row: PrayerRow.Header, fontSize: Float) {
         )
     }
 }
+
+/** A tappable heading that opens/closes its section, e.g. Kedusha. */
+@Composable
+private fun CollapsibleHeader(row: PrayerRow.Header, fontSize: Float, onToggle: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 20.dp, bottom = 6.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(colors.surfaceContainerHigh)
+            .clickable(onClickLabel = row.title, onClick = onToggle)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+    ) {
+        Text(
+            row.title,
+            fontSize = (fontSize * 0.8f).sp,
+            fontWeight = FontWeight.Bold,
+            color = colors.secondary,
+        )
+        Text(
+            stringResource(R.string.in_repetition),
+            fontSize = (fontSize * 0.6f).sp,
+            color = colors.onSurfaceVariant,
+            modifier = Modifier.padding(start = 8.dp).weight(1f),
+        )
+        Icon(
+            if (row.expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+            contentDescription = null,
+            tint = colors.secondary,
+        )
+    }
+}
+
+@Composable
+private fun zmanimLine(kind: String, z: Zmanim): String {
+    fun t(time: ZonedDateTime?) = time?.format(TIME) ?: "—"
+    val line = when (kind) {
+        "shema" -> stringResource(R.string.zmanim_shema, t(z.sofShmaMga), t(z.sofShmaGra))
+        "tefila" -> stringResource(R.string.zmanim_tefila, t(z.sunrise), t(z.sofTefilaMga), t(z.sofTefilaGra))
+        else -> ""
+    }
+    return if (z.approximate) line + " " + stringResource(R.string.zmanim_approximate) else line
+}
+
+private val TIME = DateTimeFormatter.ofPattern("H:mm")
 
 @Composable
 private fun PrayerText(row: PrayerRow.Text, fontSize: Float, optionStyle: (String) -> SpanStyle?) {

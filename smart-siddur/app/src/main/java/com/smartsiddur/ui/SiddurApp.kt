@@ -36,7 +36,14 @@ import com.smartsiddur.R
 import com.smartsiddur.data.MenuEntry
 import com.smartsiddur.data.PrayerRepository
 import com.smartsiddur.data.Settings
+import com.smartsiddur.data.DeviceLocation
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import com.smartsiddur.logic.Place
 import com.smartsiddur.logic.PrayerTime
+import java.time.ZoneId
 import kotlinx.coroutines.launch
 import java.time.ZonedDateTime
 
@@ -70,8 +77,10 @@ fun SiddurApp(repository: PrayerRepository, settings: Settings) {
     val scope = rememberCoroutineScope()
     // Open on the prayer that fits the time of day
     var currentId by rememberSaveable {
-        mutableStateOf(PrayerTime.suggestedPrayerId(ZonedDateTime.now(), settings.inIsrael))
+        val place = Place.of(settings.latitude, settings.longitude, settings.inIsrael, ZoneId.systemDefault())
+        mutableStateOf(PrayerTime.suggestedPrayerId(ZonedDateTime.now(), place))
     }
+    LocationPermission(settings)
     val context = ScreenContext(repository, settings, openMenu = { scope.launch { drawerState.open() } })
 
     fun select(id: String) {
@@ -134,6 +143,28 @@ fun SiddurApp(repository: PrayerRepository, settings: Settings) {
                         Text(entry.title)
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Asks once for approximate location (for zmanim), and refreshes the stored location on each
+ * launch when allowed. Without it, zmanim are computed for an approximate place.
+ */
+@Composable
+private fun LocationPermission(settings: Settings) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) scope.launch { DeviceLocation.refresh(context, settings) }
+    }
+    LaunchedEffect(Unit) {
+        when {
+            DeviceLocation.hasPermission(context) -> DeviceLocation.refresh(context, settings)
+            !settings.locationAsked -> {
+                settings.locationAsked = true
+                launcher.launch(DeviceLocation.PERMISSION)
             }
         }
     }

@@ -15,6 +15,10 @@ a Hebrew calendar. The text is Nusach Ashkenaz, and the app is set up so more nu
   - Ma'ariv after midday, and the brachot after sunset, count as the next Hebrew day. The *אחרי השקיעה* chip
     switches this by hand.
   - On launch the app opens the prayer that fits the time of day.
+- **Zmanim:** סוף זמן ק״ש under the Kri'at Shema heading, and נץ החמה with סוף זמן תפילה under Shemoneh
+  Esrei (MGA and GRA, calculated with KosherJava). These use the phone's approximate location: the app asks once,
+  and you can refresh it in Settings. Without location, the times are estimated and labeled as approximate.
+- **Kedusha** (said only in the repetition) is a collapsed section right before אתה קדוש; tap to open it.
 - **Section jump:** tap the prayer name in the top bar to jump to any section.
 - **Hebrew calendar:** a Hebrew month grid with Yom Tov, fasts, Rosh Chodesh and minor holidays color-coded.
   Tapping a day shows its details: Gregorian date, holidays, parsha and omer. The month's events are listed below
@@ -80,6 +84,8 @@ tools/build_content.py       regenerates the prayer JSON from the Sefaria export
    - An option embedded in a line goes in `<if when="expr">…</if>`. For example, Ya'aleh Veyavo's
      `<if when="rosh_chodesh"><small>לר"ח:</small> רֹאשׁ הַחֹדֶשׁ הַזֶּה:</if>` only shows on Rosh Chodesh.
    - A section with an empty `title` gets no heading, only spacing (used for the psalms).
+   - `"collapsible": true` shows the section closed until tapped; `"zmanim": "shema"` or `"tefila"` on a
+     section adds today's times under its heading.
    - `rollover` is `none`, `noon` (Ma'ariv) or `sunset` (brachot). It decides which Hebrew day the prayer belongs to.
    - `service` is `shacharit`, `mincha`, `maariv` or `null`. It is used for day rules such as tachanun.
 2. Add a menu entry to `assets/siddur/index.json`: `{ "type": "prayer", "id": "tefilat_haderech", "title": "תפילת הדרך" }`.

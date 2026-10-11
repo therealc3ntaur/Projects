@@ -195,9 +195,11 @@ def is_halachic_note(item):
     if item["type"] != "instruction":
         return False
     p = plain(item["text"])
+    if p.startswith(("אם ", "יש ")):
+        return True
     if p.endswith(":") or p.startswith("("):
         return False
-    return len(p) > 40 or p.startswith(("אם ", "יש ")) or "תקנ" in p
+    return len(p) > 40 or "תקנ" in p
 
 
 def flatten(lst):
@@ -251,12 +253,22 @@ def make_items(raw, overrides=None):
             item["when"] = when
         if is_halachic_note(item) and not ov.get("keep"):
             continue
-        items.append(item)
+        prev = items[-1] if items else None
+        if (prev is not None and prev.pop("_label", False) and itype == "text"
+                and len(plain(text)) <= 40 and prev.get("when") and item.get("when") == prev["when"]):
+            # A label followed by a short insert reads as one line: "בקיץ: מוֹרִיד הַטָּל"
+            prev["type"] = "text"
+            prev["text"] = f'<small>{plain(prev["text"])}</small> {item["text"]}'
+        else:
+            items.append(item)
         span = ov.get("span")
         if span is None and expr is not None and not rest:
             span = 1  # stand-alone label governs the next item
+            item["_label"] = True
         if span and (ov.get("when") or expr):
             carry.append([ov.get("when") or expr, span])
+    for it in items:
+        it.pop("_label", None)
     return items
 
 
@@ -266,10 +278,12 @@ class Builder:
         self.doc = {"id": pid, "title": title, "service": service,
                     "rollover": rollover, "sections": []}
 
-    def part(self, title, when=None):
+    def part(self, title, when=None, zmanim=None):
         s = {"title": title, "level": 1, "items": []}
         if when:
             s["when"] = when
+        if zmanim:
+            s["zmanim"] = zmanim  # the app shows today's times under this heading
         self.doc["sections"].append(s)
         return self
 
@@ -280,6 +294,7 @@ class Builder:
         if not items:
             return self
         title = title or self.src.he_title(*path)
+        title = title.strip()  # a title of " " means "no heading"
         if title.startswith("תהילים"):
             title = ""  # show the psalm itself without a "Tehillim N" heading
         s = {"title": title, "level": 2, "items": items}
@@ -303,6 +318,18 @@ class Builder:
             else:
                 self.leaf(sub, title=titles.get(k), when=per_leaf.get(k, when),
                           overrides=overrides.get(k))
+        return self
+
+    def amidah(self, path, kedusha, exclude=(), when=None, overrides=None):
+        """The Amidah blessings in order, with Kedusha (said only in the repetition) as a
+        collapsed section right before אתה קדוש."""
+        keys = [k for k in self.src.node(*path) if k not in exclude and k != kedusha]
+        keys.insert(keys.index("Holiness of God"), kedusha)
+        for k in keys:
+            self.leaf(path + (k,), title="קדושה" if k == kedusha else None, when=when,
+                      overrides=(overrides or {}).get(k))
+            if k == kedusha:
+                self.doc["sections"][-1]["collapsible"] = True
         return self
 
     def custom(self, title, items, when=None, level=2):
@@ -339,8 +366,10 @@ def small(items):
     out = []
     for it in items:
         it = dict(it)
-        if it["type"] == "text" and not it["text"].startswith("<small>"):
-            it["text"] = "<small>" + it["text"] + "</small>"
+        if it["type"] == "text":
+            # Nested <small> inside keeps its own (relative) size; unwrap a leading label so the
+            # response ("והקהל עונים: ...") reads like the blessing above it
+            it["text"] = "<small>" + re.sub(r"^<small>([^<]*)</small>", r"\1", it["text"]) + "</small>"
         out.append(it)
     return out
 
@@ -376,17 +405,19 @@ def build_shacharit(src):
     S = W + ("Shacharit",)
 
     b.part("ברכות השחר וקרבנות")
-    b.tree(S + ("Preparatory Prayers",))
+    b.tree(S + ("Preparatory Prayers",), exclude=(
+        "Akedah", "Kiyor", "Terumat HaDeshen", "Ketoret", "Order of the Temple Service", "Laws of Sacrifices",
+    ))
 
     b.part("פסוקי דזמרה")
     b.tree(S + ("Pesukei Dezimra",),
            per_leaf={"Mizmor Letoda": "mizmor_letoda", "Psalm 130": "aseret_yemei_teshuva"})
 
-    b.part("קריאת שמע וברכותיה")
+    b.part("קריאת שמע וברכותיה", zmanim="shema")
     b.tree(S + ("Blessings of the Shema",))
 
-    b.part("שמונה עשרה")
-    b.tree(S + ("Amidah",), exclude=("Birkat Kohanim", "Peace", "Concluding Passage"))
+    b.part("שמונה עשרה", zmanim="tefila")
+    b.amidah(S + ("Amidah",), "Kedushah", exclude=("Birkat Kohanim", "Peace", "Concluding Passage"))
     b.custom("ברכת כהנים", birkat_kohanim(src))
     b.leaf(S + ("Amidah", "Peace"))
     b.leaf(S + ("Amidah", "Concluding Passage"))
@@ -396,6 +427,8 @@ def build_shacharit(src):
     b.tree(rc, when="hallel", overrides={
         "Psalm 115": {0: {"when": "hallel_shalem", "strip_label": True}},
         "Psalm 116": {0: {"when": "hallel_shalem", "strip_label": True}},
+        # The congregation's repeated "הודו" responses
+        "Psalm 118": {2: {"skip": True}, 4: {"skip": True}, 6: {"skip": True}},
     })
     b.leaf(S + ("Post Amidah", "Vidui and 13 Middot"), when="aseret_yemei_teshuva | fast_day")
     b.leaf(S + ("Post Amidah", "Avinu Malkenu"), when="avinu_malkenu", overrides={
@@ -411,12 +444,15 @@ def build_shacharit(src):
     b.part("קריאת התורה", when="torah_reading")
     R = S + ("Torah Reading",)
     b.tree(R + ("Removing the Torah from Ark",), when="torah_reading",
-           per_leaf={"El Erech Appayim": "torah_reading & tachanun & (day_2 | day_5)"})
-    b.tree(R + ("Reading from Sefer",), when="torah_reading", exclude=("Birkat Hagomel",), overrides={
-        "Raising the Torah": {3: {"when": "tachanun & (day_2 | day_5)", "span": 5}},
+           per_leaf={"El Erech Appayim": "torah_reading & tachanun & (day_2 | day_5)"},
+           titles={"Lekha Hashem": " "})
+    F = R + ("Reading from Sefer",)
+    b.leaf(F + ("Birkat HaTorah",), when="torah_reading")
+    b.custom("ברכת הגומל", small(make_items(src.node(*F, "Birkat Hagomel"))), when="torah_reading")
+    b.leaf(F + ("Half Kaddish",), when="torah_reading")
+    b.leaf(F + ("Raising the Torah",), when="torah_reading", overrides={
+        3: {"when": "tachanun & (day_2 | day_5)", "span": 5},
     })
-    b.custom("ברכת הגומל", small(make_items(src.node(*R, "Reading from Sefer", "Birkat Hagomel"))),
-             when="torah_reading")
     b.tree(R + ("Returning Sefer to Aron",), when="torah_reading")
 
     b.part("אשרי ובא לציון")
@@ -436,8 +472,11 @@ def build_shacharit(src):
     musaf = ("Festivals", "Rosh Chodesh", "Musaf Amidah for Rosh Chodesh")
     rc = "rosh_chodesh"
     b.part("מוסף לראש חודש", when=rc)
-    for leaf in ("Patriarchs", "Divine Might", "Kedushah", "Holiness of God"):
+    for leaf in ("Patriarchs", "Divine Might"):
         b.leaf(A + (leaf,), when=rc)
+    b.leaf(A + ("Kedushah",), title="קדושה", when=rc)
+    b.doc["sections"][-1]["collapsible"] = True
+    b.leaf(A + ("Holiness of God",), when=rc)
     b.leaf(musaf + ("Sanctity of the Day",), when=rc)
     temple = src.node(*A, "Temple Service")
     b.leaf(A + ("Temple Service",), when=rc, raw=[temple[0], temple[4]])
@@ -469,7 +508,7 @@ def build_mincha(src):
     b.part("אשרי")
     b.leaf(M + ("Ashrei",))
     b.part("שמונה עשרה")
-    b.tree(M + ("Amida",), exclude=("Birkat Kohanim", "Peace", "Concluding Passage"))
+    b.amidah(M + ("Amida",), "Keduasha", exclude=("Birkat Kohanim", "Peace", "Concluding Passage"))
     fast = "fast_day | tisha_bav"
     b.custom("ברכת כהנים", birkat_kohanim(src), when=fast)
     peace = src.node(*M, "Amida", "Peace")

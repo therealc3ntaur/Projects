@@ -107,10 +107,42 @@ class PrayerContentTest {
     }
 
     @Test
+    fun kedushaIsCollapsedRightBeforeAtaKadosh() {
+        for (id in listOf("shacharit", "mincha")) {
+            val prayer = repository.load("ashkenaz", id)
+            val i = prayer.sections.indexOfFirst { it.collapsible }
+            assertEquals("קדושה", prayer.sections[i].title)
+            assertTrue(plain(prayer.sections[i + 1].items.first().text).startsWith("אתה קדוש"))
+            val flags = DayContext.of(LocalDate.of(2026, 10, 19), true, prayer.service).flags
+            val closed = buildRows(prayer, flags, smartMode = true)
+            val open = buildRows(prayer, flags, smartMode = true, expanded = setOf(i))
+            assertEquals(prayer.sections[i].items.size, open.size - closed.size)
+        }
+    }
+
+    @Test
+    fun shacharitStructure() {
+        val prayer = repository.load("ashkenaz", "shacharit")
+        val titles = prayer.sections.map { it.title }
+        for (removed in listOf("עקדה", "פרשת הכיור", "פרשת תרומת הדשן", "פרשת הקטורת", "סדר המערכה", "דיני זבחים", "לך השם")) {
+            assertFalse(removed, removed in titles)
+        }
+        assertTrue(titles.indexOf("ברכת הגומל") < titles.indexOf("הגבהה"))
+        assertEquals("shema", prayer.sections.first { it.title == "קריאת שמע וברכותיה" }.zmanim)
+        assertEquals("tefila", prayer.sections.first { it.title == "שמונה עשרה" }.zmanim)
+        // The congregation's repeated "הודו" lines in Hallel are gone
+        assertTrue(prayer.sections.flatMap { it.items }.none { it.text.startsWith("<small>הוֹדוּ") })
+        // "בקיץ: מוריד הטל" is a single line
+        val gevurot = prayer.sections.first { it.title == "גבורות" }.items
+        assertEquals(1, gevurot.count { it.`when` == "morid_hatal" })
+    }
+
+    @Test
     fun smartModeOffShowsEverything() {
         val prayer = repository.load("ashkenaz", "mincha")
         val flags = DayContext.of(LocalDate.of(2026, 10, 19), true, prayer.service).flags
-        val all = buildRows(prayer, flags, smartMode = false).count { it is PrayerRow.Text }
+        val all = buildRows(prayer, flags, smartMode = false, expanded = prayer.sections.indices.toSet())
+            .count { it is PrayerRow.Text }
         assertEquals(prayer.sections.sumOf { it.items.size }, all)
         val smart = buildRows(prayer, flags, smartMode = true).count { it is PrayerRow.Text }
         assertTrue(smart < all)

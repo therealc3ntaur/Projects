@@ -26,6 +26,15 @@
     <string name="settings_font_size">גודל טקסט</string>
     <string name="settings_font_size_desc">אפשר גם לצבוט בשתי אצבעות בתוך התפילה</string>
     <string name="settings_nusach">נוסח</string>
+    <string name="in_repetition">בחזרת הש״ץ</string>
+    <string name="zmanim_shema">סוף זמן ק״ש: מג״א %1$s · גר״א %2$s</string>
+    <string name="zmanim_tefila">נץ החמה %1$s · סוף זמן תפילה: מג״א %2$s · גר״א %3$s</string>
+    <string name="zmanim_approximate">(מיקום משוער)</string>
+    <string name="settings_zmanim_location">מיקום לחישוב הזמנים</string>
+    <string name="settings_location_device">לפי מיקום המכשיר (%1$s, %2$s)</string>
+    <string name="settings_location_estimated">משוער — אפשר לאשר גישה למיקום לזמנים מדויקים</string>
+    <string name="settings_location_failed">לא ניתן לקבל מיקום; משתמש במיקום משוער</string>
+    <string name="settings_location_update">עדכן</string>
     <string name="settings_theme">ערכת נושא</string>
     <string name="theme_system">לפי הגדרות המכשיר</string>
     <string name="theme_light">בהיר</string>

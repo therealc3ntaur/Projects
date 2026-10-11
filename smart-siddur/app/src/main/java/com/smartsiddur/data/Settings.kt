@@ -21,6 +21,12 @@ class Settings(context: Context) {
     var nusach by Pref(KEY_NUSACH, "ashkenaz", { k, d -> getString(k, d) ?: d }, SharedPreferences.Editor::putString)
     var inIsrael by Pref(KEY_IN_ISRAEL, TimeZone.getDefault().id in ISRAEL_TIME_ZONES, SharedPreferences::getBoolean, SharedPreferences.Editor::putBoolean)
     var smartMode by Pref(KEY_SMART, true, SharedPreferences::getBoolean, SharedPreferences.Editor::putBoolean)
+    /** Device location for zmanim, or NaN when unknown. */
+    var latitude by Pref(KEY_LAT, Float.NaN, SharedPreferences::getFloat, SharedPreferences.Editor::putFloat)
+    var longitude by Pref(KEY_LON, Float.NaN, SharedPreferences::getFloat, SharedPreferences.Editor::putFloat)
+    var locationAsked by Pref(KEY_LOCATION_ASKED, false, SharedPreferences::getBoolean, SharedPreferences.Editor::putBoolean)
+    val hasLocation get() = !latitude.isNaN() && !longitude.isNaN()
+
     var themeMode by Pref(
         KEY_THEME,
         ThemeMode.SYSTEM,
@@ -63,6 +69,9 @@ class Settings(context: Context) {
         private const val KEY_IN_ISRAEL = "in_israel"
         private const val KEY_SMART = "smart_mode"
         private const val KEY_THEME = "theme_mode"
+        private const val KEY_LAT = "latitude"
+        private const val KEY_LON = "longitude"
+        private const val KEY_LOCATION_ASKED = "location_asked"
 
         private val ISRAEL_TIME_ZONES = setOf("Asia/Jerusalem", "Asia/Tel_Aviv", "Israel")
     }

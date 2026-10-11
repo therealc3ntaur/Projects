@@ -25,6 +25,10 @@ data class Section(
     val level: Int = 2,
     /** Condition expression; the whole section is skipped when false. */
     val `when`: String? = null,
+    /** Shown closed until tapped (e.g. Kedusha, said only in the repetition). */
+    val collapsible: Boolean = false,
+    /** Today's times to show under the heading: "shema" or "tefila". */
+    val zmanim: String? = null,
     val items: List<Item> = emptyList(),
 )
 

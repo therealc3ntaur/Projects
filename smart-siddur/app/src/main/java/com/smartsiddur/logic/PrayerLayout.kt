@@ -10,7 +10,18 @@ sealed interface PrayerRow {
     val key: String
 
     /** A section heading; a blank [title] just adds space (e.g. between psalms). */
-    data class Header(val title: String, val level: Int, override val key: String) : PrayerRow
+    data class Header(
+        val title: String,
+        val level: Int,
+        override val key: String,
+        /** Index of the section in the prayer, used to expand/collapse it. */
+        val sectionIndex: Int = -1,
+        /** A collapsible section (e.g. Kedusha); its text rows follow only when [expanded]. */
+        val collapsible: Boolean = false,
+        val expanded: Boolean = false,
+        /** Which zmanim to show under the heading, if any ("shema", "tefila"). */
+        val zmanim: String? = null,
+    ) : PrayerRow
 
     data class Text(
         val item: Item,
@@ -36,12 +47,14 @@ enum class BlockPosition {
  *
  * In smart mode, sections and items whose condition is false are dropped. Otherwise everything
  * is shown and the rows that don't apply today are marked [PrayerRow.Text.inactive].
- * Halachic notes (type "note") are never shown.
+ * Halachic notes (type "note") are never shown. Collapsible sections show only their heading
+ * unless their index is in [expanded].
  */
 fun buildRows(
     prayer: Prayer,
     flags: Set<String>,
     smartMode: Boolean,
+    expanded: Set<Int> = emptySet(),
 ): List<PrayerRow> {
     class Visible(val section: Section, val index: Int, val rows: List<PrayerRow.Text>)
 
@@ -67,8 +80,17 @@ fun buildRows(
         val next = visible.getOrNull(i + 1)
         val emptyPart = v.section.level == 1 && v.rows.isEmpty() && (next == null || next.section.level == 1)
         if (emptyPart) return@forEachIndexed
-        result += PrayerRow.Header(v.section.title, v.section.level, "h${v.index}")
-        result += markBlocks(v.rows)
+        val open = v.index in expanded
+        result += PrayerRow.Header(
+            title = v.section.title,
+            level = v.section.level,
+            key = "h${v.index}",
+            sectionIndex = v.index,
+            collapsible = v.section.collapsible,
+            expanded = open,
+            zmanim = v.section.zmanim,
+        )
+        if (!v.section.collapsible || open) result += markBlocks(v.rows)
     }
     return result
 }
